@@ -19,7 +19,7 @@
 ;Descripción: Función que "desencripta" una cadena de texto. Quita una k en cada posición par de la cadena
 ;Dominio: cadena de texto
 ;Recorrido: cadena de texto
-(define (DecryptFn cadena)(
+(define (DencryptFn cadena)(
       define decrypter(lambda (result str pos)(
          if(= pos (string-length str))
            result
@@ -35,11 +35,13 @@
        "errorDecrypt"
        )
 )
+
+(provide (all-defined-out))
 ;Ejemplos........................
 (EncryptFn "sabado")
 (EncryptFn "salida")
 (EncryptFn 2)
 
-(DecryptFn (EncryptFn "sabado"))
-(DecryptFn (EncryptFn "salida"))
-(DecryptFn 3)
+(DencryptFn (EncryptFn "sabado"))
+(DencryptFn (EncryptFn "salida"))
+(DencryptFn 3)

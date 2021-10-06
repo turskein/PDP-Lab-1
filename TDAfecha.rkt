@@ -1,7 +1,7 @@
 #lang racket
-;Constructor de TDA fecha
-;Entrada: int, int , int
-;Salida: list
+;Descripción: Constructor de TDA fecha
+;dominio: int, int , int
+;recorrido: list
 (define (date dia mes año)(
        if(and (integer? dia) (integer? mes) (integer? año))
        (if(and (and (> dia 0) (< dia 32)) (and (> mes 0) (< mes 13)) (> año 0))
@@ -11,9 +11,9 @@
        null
     )
 )
-;Pertenencia TDA fecha
-;Entrada: list
-;Salida: boolean
+;Descripción: Pertenencia TDA fecha
+;dominio: list
+;recorrido: boolean
 (define (date? date)(
 if (eq? date empty)
   #f
@@ -26,9 +26,9 @@ if (eq? date empty)
     )
 )
 )
-;Modificadores
-;Entrada: int, list
-;Salida: list
+;Descripción: Modificadores
+;dominio: int, list
+;recorrido: list
 
 (define (setDay newDay date)(
    if (and (> newDay 0) (< newDay 32))
@@ -51,9 +51,9 @@ if (eq? date empty)
   )
 )
 
-;Selectores
-;Entrada: list
-;Salida: int
+;Descripción: Selectores
+;dominio: list
+;recorrido: int
 ;Seleccionar Dia
 (define (getDay date)(
     if(date? date)
