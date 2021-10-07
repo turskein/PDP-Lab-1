@@ -13,8 +13,26 @@
 ;descripción: selector de nombre de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: string
-(define getNameprdoc(lambda (prdocs)(
+(define getName(lambda prdocs(
         car prdocs
+   )
+  )
+ )
+
+;descripción: selector de nombre de paradigmadocs
+;dominio: paradigmadocs
+;recorrido: string
+(define getEncrypter(lambda prdocs(
+        car (cdr prdocs)
+   )
+  )
+ )
+
+;descripción: selector de nombre de paradigmadocs
+;dominio: paradigmadocs
+;recorrido: string
+(define getDecrypter(lambda prdocs(
+        car(cdr (cdr prdocs))
    )
   )
  )
@@ -22,63 +40,42 @@
 ;descripción: selector de fecha de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: lista (fecha)
-(define getDateprdoc(lambda (prdocs)(
-        list-ref prdocs 1
+(define getDate(lambda prdocs(
+        car (cdr prdocs)
    )
   )
   )
-
-;descripción: selector de nombre de paradigmadocs
-;dominio: paradigmadocs
-;recorrido: string
-(define getEncrypterprdoc(lambda (prdocs)(
-        list-ref prdocs 2
-   )
-  )
- )
-
-;descripción: selector de nombre de paradigmadocs
-;dominio: paradigmadocs
-;recorrido: string
-(define getDecrypterprdoc(lambda (prdocs)(
-        list-ref prdocs 3
-   )
-  )
- )
-
-(define getsesionprdoc(lambda (prdocs)(
-        list-ref prdocs 4
-   )
-  )
- )
 
 ;descripción: agregar un usuario a lista de usuarios en paradigmadocs
 ;dominio: paradigmadocs y usuario a agregar
 ;recorrido: paradigmadocs
-(define getUsersprdoc(lambda (prdocs)(
-    list-ref prdocs 5
+(define getUsers(lambda prdocs(
+    car (cdr (cdr (cdr (cdr (cdr prdocs)))))
 )))
 ;descripción: selector de documentos de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: lista de documentos
-(define (getDocsprdoc prdocs)(
-        list-ref prdocs 6
+(define getDocs(lambda (prdocs)(
+        car (cdr (cdr (cdr (cdr (cdr (cdr prdocs))))))
    )
   )
+ )
+
 
 ;descripción: agregar un nuevo nuevo usuario a paradigmadocs
  (define (register prdocs date name password)
    (define user1 (user name (EncryptFn password) date))
    (define (existUser? Users user1)
      (if(eq? Users null)
-        #f
         (if(eqUser? (car Users) user1)
            #t
            (existUser? (cdr Users) user1)
         )
+        #f
      ))
-     (if(existUser? (getUsersprdoc prdocs) user1)
+     (if(existUser? (getUser prdocs) user1)
        prdocs
-       (list (getNameprdoc prdocs) (getEncrypterprdoc prdocs) (getDecrypterprdoc prdocs) (getDateprdoc prdocs) (getsesionprdoc prdocs) (cons user1 (getUsersprdoc prdocs)) (getDocsprdoc prdocs))
+       (list (getName prdocs) (getEncrypter prdocs) (getDecrypter prdocs) (getDate prdocs) (cons user1 (getUsers prdocs)) (getDocs))
    )
   )
+

@@ -37,11 +37,3 @@
 )
 
 (provide (all-defined-out))
-;Ejemplos........................
-(EncryptFn "sabado")
-(EncryptFn "salida")
-(EncryptFn 2)
-
-(DencryptFn (EncryptFn "sabado"))
-(DencryptFn (EncryptFn "salida"))
-(DencryptFn 3)
