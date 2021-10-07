@@ -13,7 +13,7 @@
 ;descripción: selector de nombre de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: string
-(define getNameprdoc(lambda (prdocs)(
+(define prdoc-name(lambda (prdocs)(
         car prdocs
    )
   )
@@ -22,7 +22,7 @@
 ;descripción: selector de fecha de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: lista (fecha)
-(define getDateprdoc(lambda (prdocs)(
+(define prdoc-date(lambda (prdocs)(
         list-ref prdocs 1
    )
   )
@@ -31,7 +31,7 @@
 ;descripción: selector de nombre de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: string
-(define getEncrypterprdoc(lambda (prdocs)(
+(define prdoc-encrypter(lambda (prdocs)(
         list-ref prdocs 2
    )
   )
@@ -40,13 +40,13 @@
 ;descripción: selector de nombre de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: string
-(define getDecrypterprdoc(lambda (prdocs)(
+(define prdoc-decrypter(lambda (prdocs)(
         list-ref prdocs 3
    )
   )
  )
 
-(define getsesionprdoc(lambda (prdocs)(
+(define prdoc-sesion(lambda (prdocs)(
         list-ref prdocs 4
    )
   )
@@ -55,18 +55,21 @@
 ;descripción: agregar un usuario a lista de usuarios en paradigmadocs
 ;dominio: paradigmadocs y usuario a agregar
 ;recorrido: paradigmadocs
-(define getUsersprdoc(lambda (prdocs)(
+(define prdoc-users(lambda (prdocs)(
     list-ref prdocs 5
 )))
 ;descripción: selector de documentos de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: lista de documentos
-(define (getDocsprdoc prdocs)(
+(define (prdoc-docs prdocs)(
         list-ref prdocs 6
    )
   )
 
-;descripción: agregar un nuevo nuevo usuario a paradigmadocs
+;descripción: registrar un nuevo nuevo usuario a paradigmadocs
+;dominio: paradigmadocs, date, string, string
+;recorrido: paradigmadocs
+;recursión: natural
  (define (register prdocs date name password)
    (define user1 (user name (EncryptFn password) date))
    (define (existUser? Users user1)
@@ -77,8 +80,8 @@
            (existUser? (cdr Users) user1)
         )
      ))
-     (if(existUser? (getUsersprdoc prdocs) user1)
+     (if(existUser? (prdoc-users prdocs) user1)
        prdocs
-       (list (getNameprdoc prdocs) (getEncrypterprdoc prdocs) (getDecrypterprdoc prdocs) (getDateprdoc prdocs) (getsesionprdoc prdocs) (cons user1 (getUsersprdoc prdocs)) (getDocsprdoc prdocs))
+       (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) (prdoc-sesion prdocs) (cons user1 (prdoc-users prdocs)) (prdoc-docs prdocs))
    )
   )
