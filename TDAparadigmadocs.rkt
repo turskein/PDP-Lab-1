@@ -85,3 +85,37 @@
        (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) (prdoc-sesion prdocs) (cons user1 (prdoc-users prdocs)) (prdoc-docs prdocs))
    )
   )
+
+(define login(lambda (prdocs username password operation)
+    (define user1 (username (EncryptFn password) (03 03 1980)))
+    (define (isinUser? Users user1)
+     (if(eq? Users null)
+        #f
+        (if(eqUser? (car Users) user1)
+           (if (eqPass? (car Users) user1)
+               #t
+               #f
+               )
+           (isinUser? (cdr Users) user1)
+        )
+     ))
+     (if(isinUser? (prdoc-users) user1)
+        (if(eq? operation create)
+           (lambda (date nombre contenido)(operation prdocs date nombre contenido))
+           (if(eq? operation share)
+              (lambda (idDoc access . accesses)(operation prdocs idDoc access accesses))
+              (if(eq? operation add)
+                 (lambda (idDoc date contenidoTexto)(operation prdocs idDoc date contenidoTexto))
+                 (lambda (idDoc idVersion)(operation idDoc idVersion))
+                 )
+              )
+           )
+        prdocs
+        )
+               )
+  )
+
+
+(define create(lambda (x y z)(+ x y z)))
+(define share(lambda (x y z)(+ x y z)))
+(define add(lambda (x y z)(+ x y z)))

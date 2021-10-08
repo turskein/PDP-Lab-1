@@ -6,15 +6,23 @@
         list name pass date
 ))
 
-(define (getName uss)
+(define (user-name uss)
   (car uss)
   )
 
+(define (user-pass uss)
+  (car (cdr uss))
+  )
+
 (define (eqUser? uss1 uss2)
-  (if (string=? (getName uss1) (getName uss2))
+  (if (string=? (user-name uss1) (user-name uss2))
       #t
       #f
     )
+  )
+
+(define (eqPass? uss1 uss2)
+  (= (user-pass uss1) (user-pass uss2))
   )
 
 (provide (all-defined-out))
