@@ -22,7 +22,7 @@
   )
 
 (define (eqPass? uss1 uss2)
-  (= (user-pass uss1) (user-pass uss2))
+  (string=? (user-pass uss1) (user-pass uss2))
   )
 
 (provide (all-defined-out))

@@ -2,11 +2,12 @@
 (require "TDAfecha.rkt")
 (require "EncryptFn_DencryptFn.rkt")
 (require "TDAuser.rkt")
+(require "TDAdocs.rkt")
 ;Constructo de paradigmadocs
 ;dominio: str, date, EncryptFn, DencryptFn
 ;recorrido: lista compuesta por = nombre, fecha, EncryptFn, DencryptFn, sesión activa, lista de usuario y lista de documentos
 (define paradigmadocs(lambda (name date EncryptFn DencryptFn)(
-        list name date EncryptFn DencryptFn "" '() '()
+        list name date EncryptFn DencryptFn '() '() '()
     )
 ))
 
@@ -66,6 +67,28 @@
    )
   )
 
+;descripción: actualizar lista de usuarios registrados en paradigmadocs
+;dominio: paradigmadocs, lista
+;recorrido: paradigmadocs
+(define (prdoc-setregisters prdocs newregisters)
+  (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) (prdoc-sesion prdocs) newregisters (prdoc-docs prdocs))
+  )
+
+;descripción: actualizar lista de sesiones en paradigmadocs
+;dominio: paradigmadocs, lista
+;recorrido: paradigmadocs
+(define (prdoc-setsesion prdocs newsesion)
+  (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) newsesion (prdoc-users prdocs) (prdoc-docs prdocs))
+  )
+
+(define (prdoc-setdocs prdocs newdocs)
+  (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) (prdoc-sesion prdocs) newdocs (prdoc-docs prdocs))
+  )
+
+;
+;---Fin Funciones paradigmadocs---
+;
+
 ;descripción: registrar un nuevo nuevo usuario a paradigmadocs
 ;dominio: paradigmadocs, date, string, string
 ;recorrido: paradigmadocs
@@ -82,12 +105,15 @@
      ))
      (if(existUser? (prdoc-users prdocs) user1)
        prdocs
-       (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) (prdoc-sesion prdocs) (cons user1 (prdoc-users prdocs)) (prdoc-docs prdocs))
+       (prdoc-setregisters prdocs (cons user1 (prdoc-users prdocs)))
    )
   )
-
+;descripción: función que verifica si existe el usuario en la plataforma, en caso de existir verifica el password para poder aplicar una función y en el caso de no existir retorna el paradigmadocs sin modificaciones
+;dominio: paradigmadocs, string, string, operación a aplicar
+;recorrido: aplicación de operación o paradigmadocs
+;recursión: natural
 (define login(lambda (prdocs username password operation)
-    (define user1 (username (EncryptFn password) (03 03 1980)))
+    (define user1 (user username (EncryptFn password) '(03 03 1980)))
     (define (isinUser? Users user1)
      (if(eq? Users null)
         #f
@@ -99,14 +125,15 @@
            (isinUser? (cdr Users) user1)
         )
      ))
-     (if(isinUser? (prdoc-users) user1)
+     (define prdoc_act (prdoc-setsesion prdocs (cons username (prdoc-sesion prdocs))))
+     (if(isinUser? (prdoc-users prdocs) user1)
         (if(eq? operation create)
-           (lambda (date nombre contenido)(operation prdocs date nombre contenido))
+           (lambda (date nombre contenido)(operation prdoc_act date nombre contenido));aplicación create
            (if(eq? operation share)
-              (lambda (idDoc access . accesses)(operation prdocs idDoc access accesses))
+              (lambda (idDoc access . accesses)(operation prdoc_act idDoc access accesses));aplicación share
               (if(eq? operation add)
-                 (lambda (idDoc date contenidoTexto)(operation prdocs idDoc date contenidoTexto))
-                 (lambda (idDoc idVersion)(operation idDoc idVersion))
+                 (lambda (idDoc date contenidoTexto)(operation prdoc_act idDoc date contenidoTexto));aplicación add
+                 (lambda (idDoc idVersion)(operation idDoc idVersion)) ;aplicación restoreVersion
                  )
               )
            )
@@ -116,6 +143,10 @@
   )
 
 
-(define create(lambda (x y z)(+ x y z)))
+(define (create prdocs date nombre contenido)
+  (define newdoc (docs nombre (car (prdoc-sesion prdocs)) (length (prdoc-docs prdocs )) date))
+  (prdoc-setsesion (prdoc-setdocs prdocs (cons newdoc (prdoc-docs prdocs))) (cdr (prdoc-sesion prdocs)))
+  )
+
 (define share(lambda (x y z)(+ x y z)))
 (define add(lambda (x y z)(+ x y z)))
