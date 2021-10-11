@@ -85,6 +85,14 @@
   (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) (prdoc-sesion prdocs) newdocs (prdoc-docs prdocs))
   )
 
+(define (prdoc-theresesion? prdcs)
+  (not (eq? (prdoc-sesion prdcs) null))
+  )
+
+(define (prdoc-existdoc? prdcs id)
+  ()
+  )
+
 ;
 ;---Fin Funciones paradigmadocs---
 ;
@@ -113,40 +121,62 @@
 ;recorrido: aplicación de operación o paradigmadocs
 ;recursión: natural
 (define login(lambda (prdocs username password operation)
-    (define user1 (user username (EncryptFn password) '(03 03 1980)))
-    (define (isinUser? Users user1)
-     (if(eq? Users null)
-        #f
-        (if(eqUser? (car Users) user1)
-           (if (eqPass? (car Users) user1)
-               #t
-               #f
-               )
-           (isinUser? (cdr Users) user1)
-        )
-     ))
-     (define prdoc_act (prdoc-setsesion prdocs (cons username (prdoc-sesion prdocs))))
-     (if(isinUser? (prdoc-users prdocs) user1)
-        (if(eq? operation create)
-           (lambda (date nombre contenido)(operation prdoc_act date nombre contenido));aplicación create
-           (if(eq? operation share)
-              (lambda (idDoc access . accesses)(operation prdoc_act idDoc access accesses));aplicación share
-              (if(eq? operation add)
-                 (lambda (idDoc date contenidoTexto)(operation prdoc_act idDoc date contenidoTexto));aplicación add
-                 (lambda (idDoc idVersion)(operation idDoc idVersion)) ;aplicación restoreVersion
+               (define user1 (user username (EncryptFn password) '(03 03 1980)))
+               (define (isinUser? Users user1)
+                 (if(eq? Users null)
+                    #f
+                    (if(eqUser? (car Users) user1)
+                       (if (eqPass? (car Users) user1)
+                           #t
+                           #f
+                           )
+                       (isinUser? (cdr Users) user1)
+                       )
+                    ))
+               
+               (define prdoc_act (lazy (prdoc-setsesion prdocs (cons username (prdoc-sesion prdocs))))); ingreso de usuario a sesión
+               (define list-opps (list create share add)); lista de todas las operaciones ejecutables a través de login
+               (define enters-opps(list (lambda (date nombre contenido)(operation (force prdoc_act) date nombre contenido));entrada para create
+                                                    (lambda (idDoc access . accesses)(operation (force prdoc_act) idDoc access accesses)); entrada para share
+                                                    (lambda (idDoc date contenidoTexto)(operation (force prdoc_act) idDoc date contenidoTexto)); entrada para add
+                                                    )
                  )
-              )
-           )
-        prdocs
-        )
+               (define (rangeopps pos)
+                 (if(= pos (length list-opps))
+                    prdocs
+                    (if(eq? (list-ref list-opps pos) operation)
+                       (list-ref enters-opps pos)
+                       (range operation (+ 1 pos))
+                       )
+                    )
+                 )
+               (if(isinUser? (prdoc-users prdocs) user1)
+                  (rangeopps 0)
+                  prdocs
+                  )
                )
   )
 
-
+;descripción: generar un docs dentro del apartado 'docs' del paradigmadocs
+;dominio: paradigmadocs, date, string, string
+;recorrido: paradigmadocs
 (define (create prdocs date nombre contenido)
-  (define newdoc (docs nombre (car (prdoc-sesion prdocs)) (length (prdoc-docs prdocs )) date))
-  (prdoc-setsesion (prdoc-setdocs prdocs (cons newdoc (prdoc-docs prdocs))) (cdr (prdoc-sesion prdocs)))
+  (define newdoc (lazy (docs nombre (car (prdoc-sesion prdocs)) (length (prdoc-docs prdocs)) date)))
+  (if(prdoc-theresesion? prdocs)
+     (prdoc-setsesion (prdoc-setdocs prdocs (cons (addnewversion (force newdoc) contenido) (prdoc-docs prdocs))) (cdr (prdoc-sesion prdocs)))
+     prdocs
+     )
   )
 
-(define share(lambda (x y z)(+ x y z)))
+(define (share prdocs idDoc access . accesses)
+  
+  
+  (if(prdoc-theresesion? prdocs)
+     
+     
+     )
+  )
+
+
+
 (define add(lambda (x y z)(+ x y z)))
