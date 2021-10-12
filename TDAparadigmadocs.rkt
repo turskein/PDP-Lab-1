@@ -3,6 +3,8 @@
 (require "EncryptFn_DencryptFn.rkt")
 (require "TDAuser.rkt")
 (require "TDAdocs.rkt")
+(require "TDAaccess.rkt")
+
 ;Constructo de paradigmadocs
 ;dominio: str, date, EncryptFn, DencryptFn
 ;recorrido: lista compuesta por = nombre, fecha, EncryptFn, DencryptFn, sesión activa, lista de usuario y lista de documentos
@@ -82,19 +84,15 @@
   )
 
 (define (prdoc-setdocs prdocs newdocs)
-  (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) (prdoc-sesion prdocs) newdocs (prdoc-docs prdocs))
+  (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) (prdoc-sesion prdocs) (prdoc-users prdocs) newdocs)
   )
 
 (define (prdoc-theresesion? prdcs)
   (not (eq? (prdoc-sesion prdcs) null))
   )
 
-(define (prdoc-existdoc? prdcs id)
-  ()
-  )
-
 ;
-;---Fin Funciones paradigmadocs---
+;---Fin Funciones paradigmadocs--------------------------------
 ;
 
 ;descripción: registrar un nuevo nuevo usuario a paradigmadocs
@@ -146,7 +144,7 @@
                     prdocs
                     (if(eq? (list-ref list-opps pos) operation)
                        (list-ref enters-opps pos)
-                       (range operation (+ 1 pos))
+                       (rangeopps (+ 1 pos))
                        )
                     )
                  )
@@ -163,20 +161,60 @@
 (define (create prdocs date nombre contenido)
   (define newdoc (lazy (docs nombre (car (prdoc-sesion prdocs)) (length (prdoc-docs prdocs)) date)))
   (if(prdoc-theresesion? prdocs)
-     (prdoc-setsesion (prdoc-setdocs prdocs (cons (addnewversion (force newdoc) contenido) (prdoc-docs prdocs))) (cdr (prdoc-sesion prdocs)))
+     (prdoc-setsesion (prdoc-setdocs prdocs (cons (addnewversion (force newdoc) (EncryptFn contenido)) (prdoc-docs prdocs))) (cdr (prdoc-sesion prdocs)))
      prdocs
      )
   )
 
 (define (share prdocs idDoc access . accesses)
-  
-  
+  (define (addmultiplyaccess doc listacces)
+    (if (eq? listacces null)
+        doc
+        (addmultiplyaccess (addaccess doc (car listacces)) (cdr listacces)))
+        )
+    
+  (define addaccesses2doc
+    (lambda (doc)
+      (if (docs-rightid? doc idDoc)
+          (addmultiplyaccess doc accesses)
+          doc
+          )
+      )
+    )
+
+
   (if(prdoc-theresesion? prdocs)
-     
-     
+     (if(< idDoc (length (prdoc-docs prdocs)))
+        (if(isowner? (list-ref (prdoc-docs prdocs) idDoc) (car (prdoc-sesion prdocs)))
+           (prdoc-setsesion (prdoc-setdocs (prdoc-setdocs prdocs (map
+                                  (lambda (doc)(if (docs-rightid? doc idDoc)
+                                                   (addaccess doc access)
+                                                   doc
+                                                   )
+                                    ) (prdoc-docs prdocs))) (map addaccesses2doc (prdoc-docs (prdoc-setdocs prdocs (map
+                                  (lambda (doc)(if (docs-rightid? doc idDoc)
+                                                   (addaccess doc access)
+                                                   doc
+                                                   )
+                                    ) (prdoc-docs prdocs)))))) '())
+           prdocs
+           )
+        prdocs
+        )
+     prdocs
      )
   )
 
 
-
 (define add(lambda (x y z)(+ x y z)))
+;-----Apliación de testeos
+(define emptyGDocs (paradigmadocs "gDocs" (date 25 10 2021) EncryptFn DencryptFn))
+(define gDocs1
+(register (register (register emptyGDocs (date 25 10 2021) "user1" "pass1") (date 25 10 2021) "user2" "pass2") (date 25 10 2021) "user3" "pass3"))
+(define gDocsn ((login gDocs1 "user1" "pass1" create) (date 30 08 2021) "doc0" "contenido doc0"))
+(define gDocs2 ((login gDocsn "user1" "pass1" create) (date 30 08 2021) "doc1" "contenido doc1"))
+(define gDocs3 ((login gDocs2 "user2" "pass2" create) (date 30 08 2021) "doc2" "contenido doc2"))
+(define gDocs6 ((login gDocs2 "user1" "pass1" share) 0 (access "user1" #\r) (access "user2" #\w)))
+
+
+

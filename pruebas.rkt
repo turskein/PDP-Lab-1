@@ -34,3 +34,9 @@
   )
 
 ((rangeopps peo2 0) 1 2 3)
+(define (ispar num)
+  (if (= 0 (modulo num 2))
+      (* num 2)
+      #f
+      )
+  )

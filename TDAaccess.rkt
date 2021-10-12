@@ -15,3 +15,5 @@
 (define (access-kind acc)
   (list-ref acc 1)
   )
+
+  (provide (all-defined-out))

@@ -75,7 +75,7 @@
 ;dominio: docs, user
 ;recorrido: boolean
 (define (isowner? dcs user)
-  (eq? (docs-owner dcs) (user-name user) )
+  (eq? (docs-owner dcs) user )
   )
 
 ;descripción: agrega una nueva versión al documento generando una versión y apilandola a la anterior, o bien recién creandola
