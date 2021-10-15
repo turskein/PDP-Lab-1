@@ -2,8 +2,9 @@
 (require "TDAuser.rkt")
 (require "TDAfecha.rkt")
 (require "TDAversion.rkt")
+(require "TDAaccess.rkt")
 
-;descripción: constructor TDA user de formato (nombre, idDocs, propietario , date, versions, ,access)
+;descripción: constructor TDA user de formato (nombre, idDocs, propietario , date, versions, access)
 ;dominio: string, date, string
 ;recorrido: docs
 (define (docs name owner idDocs date)
@@ -72,7 +73,7 @@
   )
 
 ;descripción: cuestiona si el usuario ingresado es el propietario del cocumento
-;dominio: docs, user
+;dominio: docs, string(name user)
 ;recorrido: boolean
 (define (isowner? dcs user)
   (eq? (docs-owner dcs) user )
@@ -81,24 +82,58 @@
 ;descripción: agrega una nueva versión al documento generando una versión y apilandola a la anterior, o bien recién creandola
 ;dominio: docs, string
 ;recorrido: docs
-(define (addnewversion dcs content)
+(define (addnewversion dcs content date)
   (if(eq? (docs-versions dcs) null)
-  (docs-setversions dcs (cons (version content 0) (docs-versions dcs)))
-  (docs-setversions dcs (cons (addcontent (car (docs-versions dcs)) content) (docs-versions dcs)))
+  (docs-setversions dcs (cons (version content 0 date) (docs-versions dcs)))
+  (docs-setversions dcs (cons (addcontent (car (docs-versions dcs)) content date) (docs-versions dcs)))
   )
   )
-
-;descripción: agrega un nuevo access al documento generandolo y apilandola a la anterior
+;descripción: verifica si el nombre del acceso en la entrada ya existe dentro de la lista de accesos al documento
+;dominio: lista de accesos, access
+;recorrido: booleano
+;recursividad: natural
+(define existaccess
+  (lambda (listaccess acs)
+    (if (eq? listaccess null)
+        #f
+        (if(eq? (access-user (car listaccess)) (access-user acs) )
+           #t
+           (existaccess (cdr listaccess) acs)
+           )
+        )
+    )
+  )
+;descripción: agrega un nuevo access al documento y si existe lo actualiza a uno nuevo
 ;dominio: docs, access
 ;recorrido: docs
 (define (addaccess dcs newaccess)
-  (docs-setaccess dcs (cons newaccess (docs-access dcs)))
+  (if(existaccess (docs-access dcs) newaccess)
+     (docs-setaccess dcs (map (lambda (acs)
+                                (if(eq? (access-user acs) (access-user newaccess))
+                                   newaccess
+                                   acs
+                                   )
+                                ) (docs-access dcs)))
+     (docs-setaccess dcs (cons newaccess (docs-access dcs)))
+     )
   )
 
 ;descripción: cuestiona si el usuario ingresado puede escribir en el cocumento
-;dominio: docs, user
+;dominio: docs, string(name user)
 ;recorrido: boolean
-;(define (canwrite? dcs user)())
+;recursividad: natural
+(define (canwrite? dcs user)
+  (define (can? listaccess user)
+    (if(eq? listaccess null)
+       #f
+       (if(string=? (access-user (car listaccess)) user)
+          #t
+          (can? (cdr listaccess) user)
+          )
+       )
+    )
+  (can? (docs-access dcs) user)
+  )
 
 ;descripción: cuestiona si el usuario ingresado puede escribir en el cocumento
 ;dominio: docs, user

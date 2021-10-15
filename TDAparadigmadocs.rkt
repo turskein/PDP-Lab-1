@@ -82,139 +82,34 @@
 (define (prdoc-setsesion prdocs newsesion)
   (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) newsesion (prdoc-users prdocs) (prdoc-docs prdocs))
   )
-
+;descripción: actualizar lista de documentos en paradigmadocs
+;dominio: paradigmadocs, lista
+;recorrido: paradigmadocs
 (define (prdoc-setdocs prdocs newdocs)
   (list (prdoc-name prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-date prdocs) (prdoc-sesion prdocs) (prdoc-users prdocs) newdocs)
   )
 
+;descripción: verifica si existe algún usuario activo
+;dominio: paradigmadocs
+;recorrido: boolean
 (define (prdoc-theresesion? prdcs)
   (not (eq? (prdoc-sesion prdcs) null))
   )
 
-;
-;---Fin Funciones paradigmadocs--------------------------------
-;
-
-;descripción: registrar un nuevo nuevo usuario a paradigmadocs
-;dominio: paradigmadocs, date, string, string
+;descripción: retira la sesión activa de paradigmadocs
+;dominio: paradigmadocs
 ;recorrido: paradigmadocs
-;recursión: natural
- (define (register prdocs date name password)
-   (define user1 (user name (EncryptFn password) date))
-   (define (existUser? Users user1)
-     (if(eq? Users null)
-        #f
-        (if(eqUser? (car Users) user1)
-           #t
-           (existUser? (cdr Users) user1)
-        )
-     ))
-     (if(existUser? (prdoc-users prdocs) user1)
-       prdocs
-       (prdoc-setregisters prdocs (cons user1 (prdoc-users prdocs)))
-   )
-  )
-;descripción: función que verifica si existe el usuario en la plataforma, en caso de existir verifica el password para poder aplicar una función y en el caso de no existir retorna el paradigmadocs sin modificaciones
-;dominio: paradigmadocs, string, string, operación a aplicar
-;recorrido: aplicación de operación o paradigmadocs
-;recursión: natural
-(define login(lambda (prdocs username password operation)
-               (define user1 (user username (EncryptFn password) '(03 03 1980)))
-               (define (isinUser? Users user1)
-                 (if(eq? Users null)
-                    #f
-                    (if(eqUser? (car Users) user1)
-                       (if (eqPass? (car Users) user1)
-                           #t
-                           #f
-                           )
-                       (isinUser? (cdr Users) user1)
-                       )
-                    ))
-               
-               (define prdoc_act (lazy (prdoc-setsesion prdocs (cons username (prdoc-sesion prdocs))))); ingreso de usuario a sesión
-               (define list-opps (list create share add)); lista de todas las operaciones ejecutables a través de login
-               (define enters-opps(list (lambda (date nombre contenido)(operation (force prdoc_act) date nombre contenido));entrada para create
-                                                    (lambda (idDoc access . accesses)(operation (force prdoc_act) idDoc access accesses)); entrada para share
-                                                    (lambda (idDoc date contenidoTexto)(operation (force prdoc_act) idDoc date contenidoTexto)); entrada para add
-                                                    )
-                 )
-               (define (rangeopps pos)
-                 (if(= pos (length list-opps))
-                    prdocs
-                    (if(eq? (list-ref list-opps pos) operation)
-                       (list-ref enters-opps pos)
-                       (rangeopps (+ 1 pos))
-                       )
-                    )
-                 )
-               (if(isinUser? (prdoc-users prdocs) user1)
-                  (rangeopps 0)
-                  prdocs
-                  )
-               )
+(define (prdoc-closesion prdcs)
+  (prdoc-setsesion prdcs '())
   )
 
-;descripción: generar un docs dentro del apartado 'docs' del paradigmadocs
-;dominio: paradigmadocs, date, string, string
-;recorrido: paradigmadocs
-(define (create prdocs date nombre contenido)
-  (define newdoc (lazy (docs nombre (car (prdoc-sesion prdocs)) (length (prdoc-docs prdocs)) date)))
-  (if(prdoc-theresesion? prdocs)
-     (prdoc-setsesion (prdoc-setdocs prdocs (cons (addnewversion (force newdoc) (EncryptFn contenido)) (prdoc-docs prdocs))) (cdr (prdoc-sesion prdocs)))
-     prdocs
-     )
+;descripción: extrae el nombre del usuario que se encuentra activo
+;dominio: paradigmadocs
+;recorrido: string(nombre usuario)
+(define (prdcs-activeuser prdcs)
+  (car (prdoc-sesion prdcs))
   )
 
-(define (share prdocs idDoc access . accesses)
-  (define (addmultiplyaccess doc listacces)
-    (if (eq? listacces null)
-        doc
-        (addmultiplyaccess (addaccess doc (car listacces)) (cdr listacces)))
-        )
-    
-  (define addaccesses2doc
-    (lambda (doc)
-      (if (docs-rightid? doc idDoc)
-          (addmultiplyaccess doc accesses)
-          doc
-          )
-      )
-    )
-
-
-  (if(prdoc-theresesion? prdocs)
-     (if(< idDoc (length (prdoc-docs prdocs)))
-        (if(isowner? (list-ref (prdoc-docs prdocs) idDoc) (car (prdoc-sesion prdocs)))
-           (prdoc-setsesion (prdoc-setdocs (prdoc-setdocs prdocs (map
-                                  (lambda (doc)(if (docs-rightid? doc idDoc)
-                                                   (addaccess doc access)
-                                                   doc
-                                                   )
-                                    ) (prdoc-docs prdocs))) (map addaccesses2doc (prdoc-docs (prdoc-setdocs prdocs (map
-                                  (lambda (doc)(if (docs-rightid? doc idDoc)
-                                                   (addaccess doc access)
-                                                   doc
-                                                   )
-                                    ) (prdoc-docs prdocs)))))) '())
-           prdocs
-           )
-        prdocs
-        )
-     prdocs
-     )
-  )
-
-
-(define add(lambda (x y z)(+ x y z)))
-;-----Apliación de testeos
-(define emptyGDocs (paradigmadocs "gDocs" (date 25 10 2021) EncryptFn DencryptFn))
-(define gDocs1
-(register (register (register emptyGDocs (date 25 10 2021) "user1" "pass1") (date 25 10 2021) "user2" "pass2") (date 25 10 2021) "user3" "pass3"))
-(define gDocsn ((login gDocs1 "user1" "pass1" create) (date 30 08 2021) "doc0" "contenido doc0"))
-(define gDocs2 ((login gDocsn "user1" "pass1" create) (date 30 08 2021) "doc1" "contenido doc1"))
-(define gDocs3 ((login gDocs2 "user2" "pass2" create) (date 30 08 2021) "doc2" "contenido doc2"))
-(define gDocs6 ((login gDocs2 "user1" "pass1" share) 0 (access "user1" #\r) (access "user2" #\w)))
-
+(provide (all-defined-out))
 
 

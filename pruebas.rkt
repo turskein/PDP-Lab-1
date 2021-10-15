@@ -2,7 +2,7 @@
 ;Constructor TDA user
 ;dominio: string, string, date
 ;recorrido: user
-(define (peo lis)(+ (car lis) (car (cdr lis))))
+(define (peo num1 num2)(+ num1 num2))
 (define (peo2 num1 num2 num3)(+ num1 num2 num3))
 (define peo3(lambda (fun)(if (eq? fun peo)
                              (lambda (x y)(fun x y))
@@ -16,11 +16,9 @@
 ; access . accesses
 ;(define (doabig fact list)
 ;  ())
-(define anotherone(lambda (acc . accs)
-                    (if(eq? accs null)
-                       (list acc)
-                       accs
-                       )))
+(define (anotherone acc . accs)
+                    accs
+                       )
 ;pruebas lambdas's en listas
 
 (define list-opps (list peo peo2))
@@ -40,3 +38,87 @@
       #f
       )
   )
+
+
+
+
+
+
+
+
+(define (suma num1 num2)(+ num1 num2))
+(define (resta num1 num2)(- num1 num2))
+
+
+(define (login function)
+  (if(eq? function suma)
+     (lambda (num1 num2)(function num1 num2))
+     (if(eq? function resta)
+        (lambda (num1 num2)(function num1 num2))
+        0
+        )
+     )
+  )
+
+(define (sumauno num1)
+  (if(= (modulo num1 2) 0)
+     num1
+     "peo"
+     )
+  )
+
+
+(define salchipapa (+ 3 2))
+
+(define salchicha
+  (lambda (function)
+  (if (procedure? function)
+      (if(eq? function peo)
+         (lambda (numero1 numero2)(function numero1 numero2))
+         (lambda (numero1 numero2 numero3)(function numero1 numero2 numero3))
+      )
+      "kk"
+      )
+    )
+  )
+
+
+
+(define listaoperaciones (list
+                          (lambda (num1 num2 num3)(+ num1 num2 num3))
+                          (lambda (num1 num2)(- num1 num2))
+                          (lambda (num1 num2)(< num1 num2))
+                          )
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

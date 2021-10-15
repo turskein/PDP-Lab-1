@@ -1,10 +1,10 @@
 #lang racket
 
 ;descripción: constructor TDA versión de la forma: (contendio , id)
-;dominio: string, int
+;dominio: string, int, date
 ;recorrido: version
-(define (version content id)
-  (list content id)
+(define (version content id date)
+  (list content id date)
   )
 
 ;descripción: se obtiene el contenido de la versión
@@ -22,10 +22,10 @@
   )
 
 ;descripción: se agrega el contenido nuevo a la el contenido de una versión anterior, agregando en uno el ID
-;dominio: versión, string
+;dominio: versión, string, date
 ;recorrido: versión
-(define (addcontent lastvrsn newcontent)
-  (version (string-append (version-content lastvrsn) newcontent) (+ 1 (version-id lastvrsn)))
+(define (addcontent lastvrsn newcontent date)
+  (version (string-append (version-content lastvrsn) newcontent) (+ 1 (version-id lastvrsn)) date)
   )
 
 (provide (all-defined-out))
