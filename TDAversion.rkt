@@ -21,8 +21,12 @@
   (car (cdr vrsn))
   )
 
+(define (version-date vrsn)
+  (car (cdr (cdr vrsn)))
+  )
+
 ;descripción: se agrega el contenido nuevo a la el contenido de una versión anterior, agregando en uno el ID
-;dominio: versión, string, date
+;dominio: versión (version anterior del documento), string (nuevo contenido), date
 ;recorrido: versión
 (define (addcontent lastvrsn newcontent date)
   (version (string-append (version-content lastvrsn) newcontent) (+ 1 (version-id lastvrsn)) date)

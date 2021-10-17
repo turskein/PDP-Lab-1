@@ -79,14 +79,21 @@
   (eq? (docs-owner dcs) user )
   )
 
-;descripción: agrega una nueva versión al documento generando una versión y apilandola a la anterior, o bien recién creandola
-;dominio: docs, string
+;descripción: ingresa una nueva versión a la lista de versiones existente
+;dominio: docs, string(name), date
 ;recorrido: docs
 (define (addnewversion dcs content date)
   (if(eq? (docs-versions dcs) null)
-  (docs-setversions dcs (cons (version content 0 date) (docs-versions dcs)))
-  (docs-setversions dcs (cons (addcontent (car (docs-versions dcs)) content date) (docs-versions dcs)))
+     (docs-setversions dcs (cons (addcontent (version "" -1 date) content date) (docs-versions dcs)))
+     (docs-setversions dcs (cons (addcontent (version "" (version-id (car (docs-versions dcs))) date) content date) (docs-versions dcs)))
+     )
   )
+
+;descripción: agrega una nueva versión al documento generando una versión y apilandola a la anterior, o bien recién creandola
+;dominio: docs, string
+;recorrido: docs
+(define (addnewversionwithlast dcs content date)
+  (docs-setversions dcs (cons (addcontent (car (docs-versions dcs)) content date) (docs-versions dcs)))
   )
 ;descripción: verifica si el nombre del acceso en la entrada ya existe dentro de la lista de accesos al documento
 ;dominio: lista de accesos, access
@@ -134,6 +141,28 @@
     )
   (can? (docs-access dcs) user)
   )
+
+;descripción: retorna una versión en particular del documento
+;dominio: docs, int(id de versión)
+;recorrido: versión
+;recursividad: cola
+(define (docs-getsomeversion dcs id)
+  (if(eq? (version-id (car(docs-versions dcs))) id)
+     (car(docs-versions dcs))
+     (docs-getsomeversion (docs-setversions dcs (cdr (docs-versions dcs))) id)
+     )
+  )
+;descripción: elimina todos los accesos del documento
+;dominio: docs
+;recorrido: docs
+(define (docs-kickall dcs)
+  (docs-setaccess dcs '())
+  )
+
+;descripción: elimina todos los accesos de un documento
+;dominio: docs
+;recorrido: docs
+;(define (docs-revoke))
 
 ;descripción: cuestiona si el usuario ingresado puede escribir en el cocumento
 ;dominio: docs, user

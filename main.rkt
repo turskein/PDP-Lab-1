@@ -2,6 +2,7 @@
 (require "TDAfecha.rkt")
 (require "EncryptFn_DencryptFn.rkt")
 (require "TDAuser.rkt")
+(require "TDAversion.rkt")
 (require "TDAdocs.rkt")
 (require "TDAaccess.rkt")
 (require "TDAparadigmadocs.rkt")
@@ -44,10 +45,11 @@
                     ))
                
                (define prdoc_act (lazy (prdoc-setsesion prdocs (cons username (prdoc-sesion prdocs))))); ingreso de usuario a sesión
-               (define list-opps (list create share add)); lista de todas las operaciones ejecutables a través de login
+               (define list-opps (list create share add restoreVersion revokeAllAccesses)); lista de todas las operaciones ejecutables a través de login
                (define enters-opps (list (lambda (date nombre contenido)(operation (force prdoc_act) date nombre contenido));entrada para create
                                         (lambda (idDoc access . accesses)(operation (force prdoc_act) idDoc access accesses)); entrada para share
                                         (lambda (idDoc date contenidoTexto)(operation (force prdoc_act) idDoc date contenidoTexto)); entrada para add
+                                        (lambda (idDoc idVersion)(operation (force prdoc_act) idDoc idVersion));entrada restroreVersion
                                         )
                  )
                (define (rangeopps pos)
@@ -61,7 +63,10 @@
                  )
                
                (if(isinUser? (prdoc-users prdocs) user1)
-                  (rangeopps 0)
+                  (if (eq? operation revokeAllAccesses)
+                      (operation (force prdoc_act));aplicación función revoke
+                      (rangeopps 0)
+                      )
                   prdocs
                   )
                )
@@ -71,7 +76,7 @@
 ;dominio: paradigmadocs, date, string, string
 ;recorrido: paradigmadocs
 (define (create prdocs date nombre contenido)
-  (define newdoc (lazy (docs nombre (car (prdoc-sesion prdocs)) (length (prdoc-docs prdocs)) date)))
+  (define newdoc (lazy (docs nombre (prdcs-activeuser prdocs) (length (prdoc-docs prdocs)) date)))
   (if(prdoc-theresesion? prdocs)
      (prdoc-closesion (prdoc-setdocs prdocs (cons (addnewversion (force newdoc) (EncryptFn contenido) date) (prdoc-docs prdocs))))
      prdocs
@@ -85,20 +90,16 @@
         (addmultiplyaccess (addaccess doc (car listacces)) (cdr listacces))
         )
     )
-    
-  (define addaccesses2doc
-    (lambda (doc)
-      (if (docs-rightid? doc idDoc)
-          (addmultiplyaccess doc newaccesses)
-          doc
-          )
-      )
-    )
   
   (define newaccesses (cons access (car accesses)))
   
-  (if(and (prdoc-theresesion? prdocs) (< idDoc (length (prdoc-docs prdocs))) (isowner? (list-ref (prdoc-docs prdocs) idDoc) (car (prdoc-sesion prdocs))))
-     (prdoc-closesion (prdoc-setdocs prdocs (map addaccesses2doc (prdoc-docs prdocs))))
+  (if(and (prdoc-theresesion? prdocs) (< idDoc (length (prdoc-docs prdocs))) )
+     (prdoc-closesion (prdoc-setdocs prdocs (map (lambda (doc)
+                                                   (if (and (docs-rightid? doc idDoc) (isowner? doc (prdcs-activeuser prdocs)))
+                                                       (addmultiplyaccess doc newaccesses)
+                                                       doc
+                                                       )
+                                                   ) (prdoc-docs prdocs))))
      prdocs
      )
   )
@@ -112,7 +113,7 @@
                                              (lambda(doc)
                                                (if (docs-rightid? doc idDoc)
                                                    (if (or (isowner? doc (prdcs-activeuser prdocs)) (canwrite? doc (prdcs-activeuser prdocs)))
-                                                       (addnewversion doc (EncryptFn contenidoTexto) date)
+                                                       (addnewversionwithlast doc (EncryptFn contenidoTexto) date)
                                                        doc
                                                        )
                                                    doc
@@ -122,6 +123,40 @@
      (prdoc-closesion prdocs)
      )
   )
+
+(define restoreVersion
+  (lambda (prdocs idDoc idVersion)
+    (if (prdoc-theresesion? prdocs)
+        (prdoc-closesion (prdoc-setdocs prdocs (map (lambda(doc)
+                                                      (if(docs-rightid? doc idDoc)
+                                                         (if(isowner? doc (prdcs-activeuser prdocs))
+                                                            (addnewversion doc (version-content (docs-getsomeversion doc idVersion)) (version-date (docs-getsomeversion doc idVersion)))
+                                                            doc
+                                                            )
+                                                         doc
+                                                         )
+                                                      )(prdoc-docs prdocs))))
+        prdocs
+        )
+    )
+  )
+
+(define revokeAllAccesses
+  (lambda (prdocs)
+    (if (prdoc-theresesion? prdocs)
+        (prdoc-closesion (prdoc-setdocs prdocs (map (lambda(doc)
+                                                      (if(isowner? doc (prdcs-activeuser prdocs))
+                                                         (docs-kickall doc)
+                                                         doc
+                                                         )
+                                                      )
+                                                    (prdoc-docs prdocs))))
+        prdocs
+        )
+    )
+  )
+
+
 ;-----Apliación de testeos
 (define emptyGDocs (paradigmadocs "gDocs" (date 25 10 2021) EncryptFn DencryptFn))
 (define gDocs1
@@ -133,6 +168,8 @@
 (define gDocs7 ((login gDocs6 "user3" "pass3" share) 0 (access "user1" #\c)))
 (define gDocs8 ((login gDocs7 "user1" "pass1" add) 0 (date 30 11 2021) "mas contenido en doc0"))
 (define gDocs9 ((login gDocs8 "user3" "pass3" add) 0 (date 30 11 2021) "mas contenido en doc3"))
+(define gDocs10 ((login gDocs9 "user1" "pass1" restoreVersion) 0 0))
+(define gDocs11 (login gDocs10 "user2" "pass2" revokeAllAccesses))
 
 
 
