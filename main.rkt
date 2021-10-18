@@ -45,11 +45,12 @@
                     ))
                
                (define prdoc_act (lazy (prdoc-setsesion prdocs (cons username (prdoc-sesion prdocs))))); ingreso de usuario a sesión
-               (define list-opps (list create share add restoreVersion revokeAllAccesses)); lista de todas las operaciones ejecutables a través de login
+               (define list-opps (list create share add restoreVersion search)); lista de todas las operaciones ejecutables a través de login
                (define enters-opps (list (lambda (date nombre contenido)(operation (force prdoc_act) date nombre contenido));entrada para create
                                         (lambda (idDoc access . accesses)(operation (force prdoc_act) idDoc access accesses)); entrada para share
                                         (lambda (idDoc date contenidoTexto)(operation (force prdoc_act) idDoc date contenidoTexto)); entrada para add
                                         (lambda (idDoc idVersion)(operation (force prdoc_act) idDoc idVersion));entrada restroreVersion
+                                        (lambda (searchText)(operation (force prdoc_act) searchText))
                                         )
                  )
                (define (rangeopps pos)
@@ -123,7 +124,9 @@
      (prdoc-closesion prdocs)
      )
   )
-
+;descripción: función que restaura una versión del documento indicado por su id
+;dominio: paradigmadocs, int(id del documento a afectar), int(id de la versión a ser traída al tope)
+;recorrido: paradigmadocs
 (define restoreVersion
   (lambda (prdocs idDoc idVersion)
     (if (prdoc-theresesion? prdocs)
@@ -140,7 +143,9 @@
         )
     )
   )
-
+;descripción: función que elimina todos los accesos existentes en los documentos pertenientes al usuario activo
+;dominio: paradigmadocs
+;recorrido: paradigmadocs
 (define revokeAllAccesses
   (lambda (prdocs)
     (if (prdoc-theresesion? prdocs)
@@ -155,7 +160,23 @@
         )
     )
   )
+;descripción: retorna una lista con todos los documentos que contienen una cadena de texto en particular, siempre y cuando se puede leer el archivo
+;dominio: paradigmadocs, string(cadena de texto a buscar)
+;recorrido: list(lista con los documentos)
+(define search
+  (lambda (prdocs searchText)
+    (if(prdoc-theresesion? prdocs)
+       (filter (lambda(doc)
+                 (and (canread? doc (prdcs-activeuser prdocs)) (existcontentindoc? doc (EncryptFn searchText)))
+                    ) (prdoc-docs prdocs))
+       null
+       )
+    )
+  )
 
+;descripción: 
+;dominio:
+;recorrido:
 
 ;-----Apliación de testeos
 (define emptyGDocs (paradigmadocs "gDocs" (date 25 10 2021) EncryptFn DencryptFn))
@@ -170,6 +191,7 @@
 (define gDocs9 ((login gDocs8 "user3" "pass3" add) 0 (date 30 11 2021) "mas contenido en doc3"))
 (define gDocs10 ((login gDocs9 "user1" "pass1" restoreVersion) 0 0))
 (define gDocs11 (login gDocs10 "user2" "pass2" revokeAllAccesses))
+((login gDocs11 "user1" "pass1" search) "contenido")
 
 
 

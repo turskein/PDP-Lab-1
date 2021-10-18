@@ -125,6 +125,16 @@
      )
   )
 
+(define (existcontentindoc? doc searchText)
+  (if (eq? (docs-versions doc) null)
+      #f
+      (if (existsubstring? searchText (version-content (car (docs-versions doc))))
+         #t
+         (existcontentindoc? (docs-setversions doc (cdr (docs-versions doc))) searchText)
+         )
+      )
+  )
+
 ;descripción: cuestiona si el usuario ingresado puede escribir en el cocumento
 ;dominio: docs, string(name user)
 ;recorrido: boolean
@@ -159,11 +169,32 @@
   (docs-setaccess dcs '())
   )
 
-;descripción: elimina todos los accesos de un documento
-;dominio: docs
-;recorrido: docs
-;(define (docs-revoke))
+;descripción: cuestiona si el usuario ingresado puede leer el cocumento
+;dominio: docs, string(nombre de usuario)
+;recorrido: boolean
+;recursividad: cola
+(define (canread? dcs user)
+  (if(or (isowner? dcs user) (canwrite? dcs user))
+     #t
+     (if(eq? (docs-access dcs) null)
+        #f
+        (if(and (string=? (access-user (car (docs-access dcs))) user) (eq? (access-kind (car (docs-access dcs)))) #\r)
+           #t
+           (canread? (docs-setaccess dcs (cdr(docs-access dcs) )) user)
+           )
+        )
+     )
+  )
 
+(define (existsubstring? lfword lfinword [init 0] [end (string-length lfword)])
+    (if(> end (string-length lfinword))
+       #f
+       (if(string-ci=? (substring lfinword init end) lfword)
+          #t
+          (existsubstring? lfword lfinword (+ init 1) (+ end 1))
+          )
+       )
+    )
 ;descripción: cuestiona si el usuario ingresado puede escribir en el cocumento
 ;dominio: docs, user
 ;recorrido: boolean

@@ -91,6 +91,26 @@
                           )
   )
 
+;testeos con filter
+
+(define (existsubstring? lfword lfinword [init 0] [end (string-length lfword)])
+  (if(> end (string-length lfinword))
+     #f
+     (if(string-ci=? (substring lfinword init end) lfword)
+        #t
+        (existsubstring? lfword lfinword (+ init 1) (+ end 1))
+        )
+     )
+  )
+
+
+(define test-strings (filter (lambda (x)(existsubstring? "peo" x 0 3)) '("peo" "cacapeo" "asdl")))
+
+
+;ejemplos access
+(define (cepillin x . j)
+  (cons x j)
+  )
 
 
 
