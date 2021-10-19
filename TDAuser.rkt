@@ -21,6 +21,10 @@
   (car (cdr uss))
   )
 
+(define (user-date uss)
+  (car (cdr (cdr uss)))
+  )
+
 ;descripción: verifica si coinciden los nombres de usuario
 ;dominio: user, user
 ;recorrido: boolean
@@ -37,5 +41,7 @@
 (define (eqPass? uss1 uss2)
   (string=? (user-pass uss1) (user-pass uss2))
   )
+
+
 
 (provide (all-defined-out))

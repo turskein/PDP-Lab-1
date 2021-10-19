@@ -12,7 +12,7 @@
 ;recorrido: paradigmadocs
 ;recursión: natural
  (define (register prdocs date name password)
-   (define user1 (user name (EncryptFn password) date))
+   (define user1 (user name ((prdoc-encrypter prdocs) password) date))
    (define (existUser? Users user1)
      (if(eq? Users null)
         #f
@@ -31,26 +31,27 @@
 ;recorrido: aplicación de operación o paradigmadocs
 ;recursión: natural
 (define login(lambda (prdocs username password operation)
-               (define user1 (user username (EncryptFn password) '(03 03 1980)))
-               (define (isinUser? Users user1)
+               (define user1 (user username ((prdoc-encrypter prdocs) password) '(03 03 1980)))
+               (define (isinUser? Users user)
                  (if(eq? Users null)
                     #f
-                    (if(eqUser? (car Users) user1)
-                       (if (eqPass? (car Users) user1)
+                    (if(eqUser? (car Users) user)
+                       (if (eqPass? (car Users) user)
                            #t
                            #f
                            )
-                       (isinUser? (cdr Users) user1)
+                       (isinUser? (cdr Users) user)
                        )
                     ))
                
                (define prdoc_act (lazy (prdoc-setsesion prdocs (cons username (prdoc-sesion prdocs))))); ingreso de usuario a sesión
-               (define list-opps (list create share add restoreVersion search)); lista de todas las operaciones ejecutables a través de login
+               (define list-opps (list create share add restoreVersion search delete)); lista de todas las operaciones ejecutables a través de login
                (define enters-opps (list (lambda (date nombre contenido)(operation (force prdoc_act) date nombre contenido));entrada para create
                                         (lambda (idDoc access . accesses)(operation (force prdoc_act) idDoc access accesses)); entrada para share
                                         (lambda (idDoc date contenidoTexto)(operation (force prdoc_act) idDoc date contenidoTexto)); entrada para add
                                         (lambda (idDoc idVersion)(operation (force prdoc_act) idDoc idVersion));entrada restroreVersion
                                         (lambda (searchText)(operation (force prdoc_act) searchText))
+                                        (lambda (id date numberOfCharecters)(operation (force prdoc_act) id date numberOfCharecters))
                                         )
                  )
                (define (rangeopps pos)
@@ -64,7 +65,7 @@
                  )
                
                (if(isinUser? (prdoc-users prdocs) user1)
-                  (if (eq? operation revokeAllAccesses)
+                  (if (or(eq? operation revokeAllAccesses) (eq? operation paradigmadocs->string))
                       (operation (force prdoc_act));aplicación función revoke
                       (rangeopps 0)
                       )
@@ -77,13 +78,15 @@
 ;dominio: paradigmadocs, date, string, string
 ;recorrido: paradigmadocs
 (define (create prdocs date nombre contenido)
-  (define newdoc (lazy (docs nombre (prdcs-activeuser prdocs) (length (prdoc-docs prdocs)) date)))
+  (define newdoc (lazy (docs nombre (prdoc-activeuser prdocs) (length (prdoc-docs prdocs)) date)))
   (if(prdoc-theresesion? prdocs)
-     (prdoc-closesion (prdoc-setdocs prdocs (cons (addnewversion (force newdoc) (EncryptFn contenido) date) (prdoc-docs prdocs))))
+     (prdoc-closesion (prdoc-setdocs prdocs (cons (addnewversion (force newdoc) ((prdoc-encrypter prdocs) contenido) date) (prdoc-docs prdocs))))
      prdocs
      )
   )
-
+;descripción: función que genera accesos para diferentes usuario a un documento en particular
+;dominio: paradigmadocs, int(id del documento), access, accesses(opcional, accesos adicionales)
+;recorrido: paradigmadocs
 (define (share prdocs idDoc access . accesses)
   (define (addmultiplyaccess doc listacces)
     (if (eq? listacces null)
@@ -96,7 +99,7 @@
   
   (if(and (prdoc-theresesion? prdocs) (< idDoc (length (prdoc-docs prdocs))) )
      (prdoc-closesion (prdoc-setdocs prdocs (map (lambda (doc)
-                                                   (if (and (docs-rightid? doc idDoc) (isowner? doc (prdcs-activeuser prdocs)))
+                                                   (if (and (docs-rightid? doc idDoc) (isowner? doc (prdoc-activeuser prdocs)))
                                                        (addmultiplyaccess doc newaccesses)
                                                        doc
                                                        )
@@ -113,8 +116,8 @@
      (prdoc-closesion (prdoc-setdocs prdocs (map
                                              (lambda(doc)
                                                (if (docs-rightid? doc idDoc)
-                                                   (if (or (isowner? doc (prdcs-activeuser prdocs)) (canwrite? doc (prdcs-activeuser prdocs)))
-                                                       (addnewversionwithlast doc (EncryptFn contenidoTexto) date)
+                                                   (if (or (isowner? doc (prdoc-activeuser prdocs)) (canwrite? doc (prdoc-activeuser prdocs)))
+                                                       (addnewversionwithlast doc ((prdoc-encrypter prdocs) contenidoTexto) date)
                                                        doc
                                                        )
                                                    doc
@@ -132,7 +135,7 @@
     (if (prdoc-theresesion? prdocs)
         (prdoc-closesion (prdoc-setdocs prdocs (map (lambda(doc)
                                                       (if(docs-rightid? doc idDoc)
-                                                         (if(isowner? doc (prdcs-activeuser prdocs))
+                                                         (if(isowner? doc (prdoc-activeuser prdocs))
                                                             (addnewversion doc (version-content (docs-getsomeversion doc idVersion)) (version-date (docs-getsomeversion doc idVersion)))
                                                             doc
                                                             )
@@ -150,7 +153,7 @@
   (lambda (prdocs)
     (if (prdoc-theresesion? prdocs)
         (prdoc-closesion (prdoc-setdocs prdocs (map (lambda(doc)
-                                                      (if(isowner? doc (prdcs-activeuser prdocs))
+                                                      (if(isowner? doc (prdoc-activeuser prdocs))
                                                          (docs-kickall doc)
                                                          doc
                                                          )
@@ -167,16 +170,28 @@
   (lambda (prdocs searchText)
     (if(prdoc-theresesion? prdocs)
        (filter (lambda(doc)
-                 (and (canread? doc (prdcs-activeuser prdocs)) (existcontentindoc? doc (EncryptFn searchText)))
+                 (and (canread? doc (prdoc-activeuser prdocs)) (existcontentindoc? doc ((prdoc-encrypter prdocs) searchText)))
                     ) (prdoc-docs prdocs))
        null
        )
     )
   )
 
-;descripción: 
-;dominio:
-;recorrido:
+;descripción: muestra todo lo relacionado al paradigmadoc operado, mostrando los diferentes usuarios. documentos y datos
+;dominio: paradigmadocs
+;recorrido: string
+(define paradigmadocs->string
+  (lambda (prdcs)
+    (if(prdoc-theresesion? prdcs)
+       (string-append "Plataforma: " (prdoc-name prdcs) "\n" "-----Usuario-----" "\n" (prdoc-showdatauser prdcs (prdoc-activeuser prdcs))"-------Doc(s)-------" "\n" (prdoc-showreadabledoc prdcs (prdoc-activeuser prdcs)))
+       (string-append "Plataforma: " (prdoc-name prdcs) "\n" "----Usuario(s)----" "\n" (prdoc-showdatauser prdcs) "-------Doc(s)-------" "\n" (prdoc-showreadabledoc prdcs))
+       )
+    )
+  )
+
+(define (delete prdcs id date numberOfCharecters)
+  (+)
+  )
 
 ;-----Apliación de testeos
 (define emptyGDocs (paradigmadocs "gDocs" (date 25 10 2021) EncryptFn DencryptFn))
@@ -187,11 +202,15 @@
 (define gDocs3 ((login gDocs2 "user2" "pass2" create) (date 30 08 2021) "doc2" "contenido doc2"))
 (define gDocs6 ((login gDocs3 "user1" "pass1" share) 0 (access "user1" #\r) (access "user2" #\w)(access "user3" #\c)))
 (define gDocs7 ((login gDocs6 "user3" "pass3" share) 0 (access "user1" #\c)))
-(define gDocs8 ((login gDocs7 "user1" "pass1" add) 0 (date 30 11 2021) "mas contenido en doc0"))
-(define gDocs9 ((login gDocs8 "user3" "pass3" add) 0 (date 30 11 2021) "mas contenido en doc3"))
+(define gDocs8 ((login gDocs7 "user1" "pass1" add) 0 (date 30 11 2021) " mas contenido en doc0"))
+(define gDocs9 ((login gDocs8 "user3" "pass3" add) 0 (date 30 11 2021) " mas contenido en doc3"))
 (define gDocs10 ((login gDocs9 "user1" "pass1" restoreVersion) 0 0))
 (define gDocs11 (login gDocs10 "user2" "pass2" revokeAllAccesses))
-((login gDocs11 "user1" "pass1" search) "contenido")
+;((login gDocs11 "user1" "pass1" search) "contenido")
+;(display (login gDocs11 "user1" "pass1" paradigmadocs->string))
+;(display "\n\n")
+;(display (paradigmadocs->string gDocs11))
+
 
 
 

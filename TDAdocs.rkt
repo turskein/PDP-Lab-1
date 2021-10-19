@@ -3,6 +3,7 @@
 (require "TDAfecha.rkt")
 (require "TDAversion.rkt")
 (require "TDAaccess.rkt")
+(require "EncryptFn_DencryptFn.rkt")
 
 ;descripción: constructor TDA user de formato (nombre, idDocs, propietario , date, versions, access)
 ;dominio: string, date, string
@@ -185,7 +186,49 @@
         )
      )
   )
+;descripción: se mostrará strings donde se señala el usuario y el tipo de accesos que tiene
+;dominio: doc
+;recorrido: string
+;recursión: natural
+(define (docs-displayaccess doc)
+     (if(eq? (docs-access doc) null)
+        ""
+        (string-append "usuario: " (access-user (car (docs-access doc))) "\n" "tipo de acceso: " (if (eq? (access-kind (car(docs-access doc))) #\r)
+                                                                                                   "Lectura"
+                                                                                                   (if (eq? (access-kind (car(docs-access doc))) #\w)
+                                                                                                       "Escritura"
+                                                                                                       (if (eq? (access-kind (car(docs-access doc))) #\c)
+                                                                                                           "Comentar"
+                                                                                                           "Propietario"
+                                                                                                           )
+                                                                                                       )
+                                                                                                   ) "\n" (docs-displayaccess (docs-setaccess doc (cdr (docs-access doc)))))
+        )
+     )
 
+;descripción: se mostrará la información correspondiente a un documento de acuerdo a si el usuario ingresado es o no el owner
+;dominio: doc, string(nombre de usuario), operation(función que desencriptará el contenido), int(si se ingresa un número se ejecutará una sección distinta del código)
+;recorrido: string
+;recursión: natural
+(define (docs-readable doc user decrypter [option 0])
+  (if(= option 0)
+     (if(and (canread? doc user) (not (eq? (docs-versions doc) null)))
+        (if(isowner? doc user)
+           (string-append "Nombre documento: " (docs-name doc) "\n" "Id-doc: "  (number->string(docs-id doc)) "\n" "Fecha de creación: " (date->string (docs-date doc)) "\n" "----Accesos---- " "\n" (docs-displayaccess doc) "\n" "---Versiones--- " "\n" "versión: " (number->string (version-id (car (docs-versions doc)))) "\n" "Fecha versión: " (date->string (version-date (car (docs-versions doc)))) "\n" "Contenido: "(decrypter (version-content (car (docs-versions doc)))) "\n" (docs-readable (docs-setversions doc (cdr (docs-versions doc))) user decrypter 1))
+           (string-append "Nombre documento: " (docs-name doc) "\n" "versión : " (number->string (version-id (car (docs-versions doc)))) "\n" "Fecha versión: " (date->string (version-date (car (docs-versions doc)))) "\n" "Contenido: "(decrypter (version-content (car (docs-versions doc))))  "\n")
+           )
+        ""
+        )
+     (if(eq? (docs-versions doc) null)
+        ""
+        (string-append "Versión: " (number->string (version-id (car (docs-versions doc)))) "\n" "Fecha versión: " (date->string (version-date (car (docs-versions doc)))) "\n" "Contenido: " (decrypter (version-content (car (docs-versions doc)))) "\n" (docs-readable (docs-setversions doc (cdr (docs-versions doc))) user decrypter 1))
+        )
+     )
+  )
+;descripción: busca en una cadena de texto si existe otra cadena de texto
+;dominio: string(palabra a buscar), string(palabra en la que se buscará), int(opcional, inicio de la palabra que se buscará),int(opcional, largo de la palabra que se buscará)
+;recorrido: boolean
+;recursión: cola
 (define (existsubstring? lfword lfinword [init 0] [end (string-length lfword)])
     (if(> end (string-length lfinword))
        #f
@@ -195,9 +238,5 @@
           )
        )
     )
-;descripción: cuestiona si el usuario ingresado puede escribir en el cocumento
-;dominio: docs, user
-;recorrido: boolean
-;(define (cancomment? dcs user))
 
 (provide (all-defined-out))

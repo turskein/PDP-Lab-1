@@ -62,24 +62,28 @@ if (eq? date empty)
 ;Seleccionar Dia
 (define (getDay date)(
     if(date? date)
-      (list (car date))
-      null
+      (car date)
+      -1
   )
 )
 ;Seleccionar Mes
 (define (getMonth date)(
     if(date? date)
-      (list (car (cdr date)))
-      null
+      (car (cdr date))
+      -1
   )
 )
 
 ;Seleccionar anio
 (define (getYear date)(
      if(date? date)
-      (list (car (cdr (cdr date))))
-      null
+      (car (cdr (cdr date)))
+      -1
   )
 )
+
+(define (date->string date)
+  (string-append (number->string (getDay date))" "(number->string (getMonth date)) " " (number->string (getYear date)))
+  )
 
 (provide (all-defined-out))
