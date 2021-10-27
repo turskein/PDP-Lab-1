@@ -11,65 +11,51 @@
 ;dominio: paradigmadocs, date, string, string
 ;recorrido: paradigmadocs
 ;recursión: natural
- (define (register prdocs date name password)
-   (define user1 (user name ((prdoc-encrypter prdocs) password) date))
-   (define (existUser? Users user1)
-     (if(eq? Users null)
-        #f
-        (if(eqUser? (car Users) user1)
-           #t
-           (existUser? (cdr Users) user1)
-        )
-     ))
-     (if(existUser? (prdoc-users prdocs) user1)
-       prdocs
-       (prdoc-setregisters prdocs (cons user1 (prdoc-users prdocs)))
-   )
+ (define (register prdcs date name password)
+   (define user1 (user name ((prdoc-encrypter prdcs) password) date))
+   (prdoc-setregisters prdcs (prdoc-adduser (prdoc-users prdcs) user1))
   )
+
 ;descripción: función que verifica si existe el usuario en la plataforma, en caso de existir verifica el password para poder aplicar una función y en el caso de no existir retorna el paradigmadocs sin modificaciones
 ;dominio: paradigmadocs, string, string, operación a aplicar
 ;recorrido: aplicación de operación o paradigmadocs
-;recursión: natural
-(define login(lambda (prdocs username password operation)
-               (define user1 (user username ((prdoc-encrypter prdocs) password) '(03 03 1980)))
-               (define (isinUser? Users user)
-                 (if(eq? Users null)
-                    #f
-                    (if(eqUser? (car Users) user)
-                       (if (eqPass? (car Users) user)
-                           #t
-                           #f
-                           )
-                       (isinUser? (cdr Users) user)
-                       )
-                    ))
-               
-               (define prdoc_act (lazy (prdoc-setsesion prdocs (cons username (prdoc-sesion prdocs))))); ingreso de usuario a sesión
-               (define list-opps (list create share add restoreVersion search delete)); lista de todas las operaciones ejecutables a través de login
-               (define enters-opps (list (lambda (date nombre contenido)(operation (force prdoc_act) date nombre contenido));entrada para create
-                                        (lambda (idDoc access . accesses)(operation (force prdoc_act) idDoc access accesses)); entrada para share
-                                        (lambda (idDoc date contenidoTexto)(operation (force prdoc_act) idDoc date contenidoTexto)); entrada para add
-                                        (lambda (idDoc idVersion)(operation (force prdoc_act) idDoc idVersion));entrada restroreVersion
-                                        (lambda (searchText)(operation (force prdoc_act) searchText))
-                                        (lambda (id date numberOfCharecters)(operation (force prdoc_act) id date numberOfCharecters))
-                                        )
+;recursión: cola
+(define login(lambda (prdcs username password operation)
+               (define user1 (user username ((prdoc-encrypter prdcs) password) '(03 03 1980)))
+               (define prdoc_act (lazy (prdoc-addactiveuser prdcs username))); generación de paradigmadocs con usuario a sesión
+               (define list-opps (list create share add restoreVersion search delete searchAndReplace applyStyles)); lista de casi todas las operaciones ejecutables a través de login
+               (define enters-opps
+                 (lambda (applyprdoc)
+                   (list (lambda (date nombre contenido)(operation applyprdoc date nombre contenido));entrada para create
+                         (lambda (idDoc access . accesses)(operation applyprdoc idDoc access accesses)); entrada para share
+                         (lambda (idDoc date contenidoTexto)(operation applyprdoc idDoc date contenidoTexto)); entrada para add
+                         (lambda (idDoc idVersion)(operation applyprdoc idDoc idVersion));entrada restroreVersion
+                         (lambda (searchText)(operation applyprdoc searchText));entrada searchText
+                         (lambda (id date numberOfCharecters)(operation applyprdoc id date numberOfCharecters));entrada delete
+                         (lambda (id date searchText replaceText)(operation applyprdoc id date searchText replaceText))
+                         (lambda (id date searchText . styles)(operation applyprdoc id date searchText styles))
+                         )
+                   )
                  )
-               (define (rangeopps pos)
+               (define (rangeopps pos applyprdoc) ;buscar coincidencia de operaciones recorriendolo a través de recursión de cola
                  (if(= pos (length list-opps))
-                    prdocs
+                    prdcs
                     (if(eq? (list-ref list-opps pos) operation)
-                       (list-ref enters-opps pos)
-                       (rangeopps (+ 1 pos))
+                       (list-ref (enters-opps applyprdoc) pos)
+                       (rangeopps (+ 1 pos) applyprdoc)
                        )
                     )
                  )
                
-               (if(isinUser? (prdoc-users prdocs) user1)
+               (if(rightuserpass? (prdoc-users prdcs) user1)
                   (if (or(eq? operation revokeAllAccesses) (eq? operation paradigmadocs->string))
-                      (operation (force prdoc_act));aplicación función revoke
-                      (rangeopps 0)
+                      (operation (force prdoc_act));aplicación función revoke o paradigmadocs->string
+                      (rangeopps 0 (force prdoc_act))
                       )
-                  prdocs
+                  (if (or(eq? operation revokeAllAccesses) (eq? operation paradigmadocs->string))
+                      (operation prdcs);aplicación función revoke o paradigmadocs->string
+                      (rangeopps 0 prdcs)
+                      )
                   )
                )
   )
@@ -77,72 +63,42 @@
 ;descripción: generar un docs dentro del apartado 'docs' del paradigmadocs
 ;dominio: paradigmadocs, date, string, string
 ;recorrido: paradigmadocs
-(define (create prdocs date nombre contenido)
-  (define newdoc (lazy (docs nombre (prdoc-activeuser prdocs) (length (prdoc-docs prdocs)) date)))
-  (if(prdoc-theresesion? prdocs)
-     (prdoc-closesion (prdoc-setdocs prdocs (cons (addnewversion (force newdoc) ((prdoc-encrypter prdocs) contenido) date) (prdoc-docs prdocs))))
-     prdocs
+(define (create prdcs date nombre contenido)
+  (define newdoc (lazy (docs nombre (prdoc-activeuser prdcs) (length (prdoc-docs prdcs)) date)))
+  (if(prdoc-theresesion? prdcs)
+     (prdoc-closesion (prdoc-addnewdoc prdcs (force newdoc) contenido date))
+     prdcs
      )
   )
 ;descripción: función que genera accesos para diferentes usuario a un documento en particular
 ;dominio: paradigmadocs, int(id del documento), access, accesses(opcional, accesos adicionales)
 ;recorrido: paradigmadocs
-(define (share prdocs idDoc access . accesses)
-  (define (addmultiplyaccess doc listacces)
-    (if (eq? listacces null)
-        doc
-        (addmultiplyaccess (addaccess doc (car listacces)) (cdr listacces))
-        )
-    )
-  
+(define (share prdcs idDoc access . accesses)
   (define newaccesses (cons access (car accesses)))
   
-  (if(and (prdoc-theresesion? prdocs) (< idDoc (length (prdoc-docs prdocs))) )
-     (prdoc-closesion (prdoc-setdocs prdocs (map (lambda (doc)
-                                                   (if (and (docs-rightid? doc idDoc) (isowner? doc (prdoc-activeuser prdocs)))
-                                                       (addmultiplyaccess doc newaccesses)
-                                                       doc
-                                                       )
-                                                   ) (prdoc-docs prdocs))))
-     prdocs
+  (if(and (prdoc-theresesion? prdcs) (< idDoc (length (prdoc-docs prdcs))) )
+     (prdoc-closesion (prdoc-addmultiplyaccess2doc prdcs idDoc newaccesses))
+     prdcs
      )
   )
 
 ;descripción: función que agrega contenido a un documento en particular
 ;dominio: paradigmadocs, int, date, string
 ;paradigmadocs:
-(define (add prdocs idDoc date contenidoTexto)
-  (if(prdoc-theresesion? prdocs)
-     (prdoc-closesion (prdoc-setdocs prdocs (map
-                                             (lambda(doc)
-                                               (if (docs-rightid? doc idDoc)
-                                                   (if (or (isowner? doc (prdoc-activeuser prdocs)) (canwrite? doc (prdoc-activeuser prdocs)))
-                                                       (addnewversionwithlast doc ((prdoc-encrypter prdocs) contenidoTexto) date)
-                                                       doc
-                                                       )
-                                                   doc
-                                                   )
-                                               )
-                                             (prdoc-docs prdocs))))
-     (prdoc-closesion prdocs)
+(define (add prdcs idDoc date contenidoTexto)
+  (if(prdoc-theresesion? prdcs)
+     (prdoc-closesion (prdoc-addcontent2somedoc prdcs idDoc date contenidoTexto))
+     (prdoc-closesion prdcs)
      )
   )
 ;descripción: función que restaura una versión del documento indicado por su id
 ;dominio: paradigmadocs, int(id del documento a afectar), int(id de la versión a ser traída al tope)
 ;recorrido: paradigmadocs
 (define restoreVersion
-  (lambda (prdocs idDoc idVersion)
-    (if (prdoc-theresesion? prdocs)
-        (prdoc-closesion (prdoc-setdocs prdocs (map (lambda(doc)
-                                                      (if(docs-rightid? doc idDoc)
-                                                         (if(isowner? doc (prdoc-activeuser prdocs))
-                                                            (addnewversion doc (version-content (docs-getsomeversion doc idVersion)) (version-date (docs-getsomeversion doc idVersion)))
-                                                            doc
-                                                            )
-                                                         doc
-                                                         )
-                                                      )(prdoc-docs prdocs))))
-        prdocs
+  (lambda (prdcs idDoc idVersion)
+    (if (prdoc-theresesion? prdcs)
+        (prdoc-closesion (prdoc-restoreversion prdcs idDoc idVersion))
+        prdcs
         )
     )
   )
@@ -150,16 +106,10 @@
 ;dominio: paradigmadocs
 ;recorrido: paradigmadocs
 (define revokeAllAccesses
-  (lambda (prdocs)
-    (if (prdoc-theresesion? prdocs)
-        (prdoc-closesion (prdoc-setdocs prdocs (map (lambda(doc)
-                                                      (if(isowner? doc (prdoc-activeuser prdocs))
-                                                         (docs-kickall doc)
-                                                         doc
-                                                         )
-                                                      )
-                                                    (prdoc-docs prdocs))))
-        prdocs
+  (lambda (prdcs)
+    (if (prdoc-theresesion? prdcs)
+        (prdoc-closesion (prdoc-revokeallacceses prdcs))
+        prdcs
         )
     )
   )
@@ -167,11 +117,9 @@
 ;dominio: paradigmadocs, string(cadena de texto a buscar)
 ;recorrido: list(lista con los documentos)
 (define search
-  (lambda (prdocs searchText)
-    (if(prdoc-theresesion? prdocs)
-       (filter (lambda(doc)
-                 (and (canread? doc (prdoc-activeuser prdocs)) (existcontentindoc? doc ((prdoc-encrypter prdocs) searchText)))
-                    ) (prdoc-docs prdocs))
+  (lambda (prdcs searchText)
+    (if(prdoc-theresesion? prdcs)
+       (prdoc-filter4content prdcs searchText)
        null
        )
     )
@@ -188,9 +136,33 @@
        )
     )
   )
+;descripción: función que elimina una cantidad específica de caracteres de un documento en particular
+;dominio: paradigmadocs, int(id del documento), date, int(numero de caracteres a eliminar)
+;recorrido: paradigmadocs
+(define (delete prdcs idDoc date numberOfCharecters)
+  (if(prdoc-theresesion? prdcs)
+     (prdoc-closesion (prdoc-delete prdcs idDoc date numberOfCharecters))
+     prdcs
+     )
+  )
+;descripción: busca dentro de un documento en particular una cadena que reemplazará por otra cadena específica
+;dominio: paradigmadocs, int(idDoc), date, string(palabra a buscar), string(palabra por la que se reemplazará)
+;recorrido: paradigmadocs
+(define (searchAndReplace prdcs idDoc date searchText replaceText)
+  (if(prdoc-theresesion? prdcs)
+     (prdoc-closesion (prdoc-searchreplace prdcs idDoc date searchText replaceText))
+     prdcs
+     )
+  )
 
-(define (delete prdcs id date numberOfCharecters)
-  (+)
+;descripción: aplica unos estilos específicos a un texto buscado
+;dominio: paradigmadocs, int(idDoc), date, string(palabra a buscar), list(lista de stilos que son caracteres)
+;recorrido: paradigmadocs
+(define (applyStyles prdcs idDoc date searchText . styles)
+  (define estilos (map (lambda (stl)
+         (string-append "#" "\u005C" (string stl))
+         )(car styles)))
+  (prdoc-closesion (prdoc-applystyles prdcs idDoc date searchText estilos))
   )
 
 ;-----Apliación de testeos
@@ -206,10 +178,13 @@
 (define gDocs9 ((login gDocs8 "user3" "pass3" add) 0 (date 30 11 2021) " mas contenido en doc3"))
 (define gDocs10 ((login gDocs9 "user1" "pass1" restoreVersion) 0 0))
 (define gDocs11 (login gDocs10 "user2" "pass2" revokeAllAccesses))
+(define gDocs12 ((login gDocs11 "user1" "pass1" delete) 1 (date 30 11 2021) 5))
+(define gDocs13 ((login gDocs12 "user3" "pass3" searchAndReplace) 0 (date 30 11 2021) "contenido" "content"))
+(define gDocs14 ((login gDocs13 "user2" "pass2" applyStyles) 0 (date 30 11 2021) "content" #\b #\i))
 ;((login gDocs11 "user1" "pass1" search) "contenido")
-;(display (login gDocs11 "user1" "pass1" paradigmadocs->string))
+;(display (login gDocs14 "user1" "pass1" paradigmadocs->string))
 ;(display "\n\n")
-;(display (paradigmadocs->string gDocs11))
+(display (paradigmadocs->string gDocs14))
 
 
 

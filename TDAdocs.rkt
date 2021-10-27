@@ -80,8 +80,8 @@
   (eq? (docs-owner dcs) user )
   )
 
-;descripción: ingresa una nueva versión a la lista de versiones existente
-;dominio: docs, string(name), date
+;descripción: ingresa una nueva versión a la lista de versiones existente, en caso de no existir una la genera con id 0, pero en caso de existir una requerirá la última versión para generar otra con el id en serie
+;dominio: docs, string(contenido), date
 ;recorrido: docs
 (define (addnewversion dcs content date)
   (if(eq? (docs-versions dcs) null)
@@ -95,6 +95,12 @@
 ;recorrido: docs
 (define (addnewversionwithlast dcs content date)
   (docs-setversions dcs (cons (addcontent (car (docs-versions dcs)) content date) (docs-versions dcs)))
+  )
+;descripción: retorna la última versión de un documento
+;dominio: docs
+;recorrido: version
+(define (docs-lastversion dcs)
+  (car (docs-versions dcs))
   )
 ;descripción: verifica si el nombre del acceso en la entrada ya existe dentro de la lista de accesos al documento
 ;dominio: lista de accesos, access
@@ -115,17 +121,23 @@
 ;dominio: docs, access
 ;recorrido: docs
 (define (addaccess dcs newaccess)
-  (if(existaccess (docs-access dcs) newaccess)
-     (docs-setaccess dcs (map (lambda (acs)
-                                (if(eq? (access-user acs) (access-user newaccess))
-                                   newaccess
-                                   acs
-                                   )
-                                ) (docs-access dcs)))
-     (docs-setaccess dcs (cons newaccess (docs-access dcs)))
+  (if(not(isowner? dcs (access-user newaccess)))
+     (if(existaccess (docs-access dcs) newaccess)
+        (docs-setaccess dcs (map (lambda (acs)
+                                   (if(eq? (access-user acs) (access-user newaccess))
+                                      newaccess
+                                      acs
+                                      )
+                                   ) (docs-access dcs)))
+        (docs-setaccess dcs (cons newaccess (docs-access dcs)))
+        )
+     dcs
      )
   )
-
+;descripción: verifica en todas las versiones del documento si existe un contenido en específico, ya sea sub-string o no
+;dominio: doc, string(texto buscado)
+;recorrido: boolean
+;recursividad: cola
 (define (existcontentindoc? doc searchText)
   (if (eq? (docs-versions doc) null)
       #f
@@ -139,7 +151,7 @@
 ;descripción: cuestiona si el usuario ingresado puede escribir en el cocumento
 ;dominio: docs, string(name user)
 ;recorrido: boolean
-;recursividad: natural
+;recursividad: cola
 (define (canwrite? dcs user)
   (define (can? listaccess user)
     (if(eq? listaccess null)
@@ -150,7 +162,7 @@
           )
        )
     )
-  (can? (docs-access dcs) user)
+  (or (can? (docs-access dcs) user) (isowner? dcs user))
   )
 
 ;descripción: retorna una versión en particular del documento
@@ -186,6 +198,7 @@
         )
      )
   )
+
 ;descripción: se mostrará strings donde se señala el usuario y el tipo de accesos que tiene
 ;dominio: doc
 ;recorrido: string
@@ -238,5 +251,28 @@
           )
        )
     )
+
+;descripción: elimina una cantidad de caracteres de la última versión del documento
+;dominio: doc, int(cantidad de caracteres)
+;recorrido: doc
+(define (doc-deletchars dcs number date)
+  (if(> number (version-length (docs-lastversion dcs)))
+     (addnewversion dcs "" date)
+     (addnewversion dcs (substring (version-content(docs-lastversion dcs)) 0 (- (version-length (docs-lastversion dcs)) (* number 2))) date)
+     )
+  )
+;descripción: reemplaza un texto buscado dentro de la última versión por un texto en particular
+;dominio: docs, date, string(texto buscado), string(texto por el que reemplazar)
+;recorrido: doc
+(define (doc-searchreplace dcs date searchText replaceText)
+  (addnewversion dcs (string-replace (version-content (docs-lastversion dcs)) searchText replaceText) date)
+  )
+
+;descripción: aplica estilos en particular una frase en específico
+;dominio: doc, string(texto buscado), list(estilos)
+;recorrido: doc
+(define (doc-applystyles date dcs searchText estilos encrypter decrypter)
+  (addnewversion dcs (encrypter (string-replace (decrypter (version-content (docs-lastversion dcs))) searchText (string-append (string-join estilos) searchText (string-join estilos)))) date)
+  )
 
 (provide (all-defined-out))

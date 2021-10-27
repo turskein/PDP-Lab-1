@@ -29,10 +29,7 @@
 ;dominio: user, user
 ;recorrido: boolean
 (define (eqUser? uss1 uss2)
-  (if (string=? (user-name uss1) (user-name uss2))
-      #t
-      #f
-    )
+  (string=? (user-name uss1) (user-name uss2))
   )
 
 ;descripción: verifica si coinciden los nombres de usuario
@@ -41,7 +38,5 @@
 (define (eqPass? uss1 uss2)
   (string=? (user-pass uss1) (user-pass uss2))
   )
-
-
 
 (provide (all-defined-out))

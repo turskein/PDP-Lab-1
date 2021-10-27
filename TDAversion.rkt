@@ -21,8 +21,18 @@
   (car (cdr vrsn))
   )
 
+;descripción: retorna la fecha de una versión
+;dominio: versión
+;recorrido: date
 (define (version-date vrsn)
   (car (cdr (cdr vrsn)))
+  )
+
+;descripción: retorna el largo del contenido de una versión
+;dominio: versión
+;recorrido: int(largo del contenido de una versión)
+(define (version-length vrsn)
+  (string-length (version-content vrsn))
   )
 
 ;descripción: se agrega el contenido nuevo a la el contenido de una versión anterior, agregando en uno el ID

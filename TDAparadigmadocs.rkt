@@ -2,9 +2,9 @@
 (require "TDAfecha.rkt")
 (require "EncryptFn_DencryptFn.rkt")
 (require "TDAuser.rkt")
+(require "TDAversion.rkt")
 (require "TDAdocs.rkt")
 (require "TDAaccess.rkt")
-
 ;Constructo de paradigmadocs
 ;dominio: str, date, EncryptFn, DencryptFn
 ;recorrido: lista compuesta por = nombre, fecha, EncryptFn, DencryptFn, sesión activa, lista de usuario y lista de documentos
@@ -16,8 +16,8 @@
 ;descripción: selector de nombre de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: string
-(define prdoc-name(lambda (prdocs)(
-        car prdocs
+(define prdoc-name(lambda (prdcs)(
+        car prdcs
    )
   )
  )
@@ -25,8 +25,8 @@
 ;descripción: selector de fecha de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: lista (fecha)
-(define prdoc-date(lambda (prdocs)(
-        list-ref prdocs 1
+(define prdoc-date(lambda (prdcs)(
+        list-ref prdcs 1
    )
   )
   )
@@ -34,8 +34,8 @@
 ;descripción: selector de nombre de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: string
-(define prdoc-encrypter(lambda (prdocs)(
-        list-ref prdocs 2
+(define prdoc-encrypter(lambda (prdcs)(
+        list-ref prdcs 2
    )
   )
  )
@@ -43,14 +43,14 @@
 ;descripción: selector de nombre de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: string
-(define prdoc-decrypter(lambda (prdocs)(
-        list-ref prdocs 3
+(define prdoc-decrypter(lambda (prdcs)(
+        list-ref prdcs 3
    )
   )
  )
 
-(define prdoc-sesion(lambda (prdocs)(
-        list-ref prdocs 4
+(define prdoc-sesion(lambda (prdcs)(
+        list-ref prdcs 4
    )
   )
  )
@@ -58,35 +58,85 @@
 ;descripción: agregar un usuario a lista de usuarios en paradigmadocs
 ;dominio: paradigmadocs y usuario a agregar
 ;recorrido: paradigmadocs
-(define prdoc-users(lambda (prdocs)(
-    list-ref prdocs 5
+(define prdoc-users(lambda (prdcs)(
+    list-ref prdcs 5
 )))
 ;descripción: selector de documentos de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: lista de documentos
-(define (prdoc-docs prdocs)(
-        list-ref prdocs 6
+(define (prdoc-docs prdcs)(
+        list-ref prdcs 6
    )
   )
 
 ;descripción: actualizar lista de usuarios registrados en paradigmadocs
 ;dominio: paradigmadocs, lista
 ;recorrido: paradigmadocs
-(define (prdoc-setregisters prdocs newregisters)
-  (list (prdoc-name prdocs) (prdoc-date prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-sesion prdocs) newregisters (prdoc-docs prdocs))
+(define (prdoc-setregisters prdcs newregisters)
+  (list (prdoc-name prdcs) (prdoc-date prdcs) (prdoc-encrypter prdcs) (prdoc-decrypter prdcs) (prdoc-sesion prdcs) newregisters (prdoc-docs prdcs))
   )
 
 ;descripción: actualizar lista de sesiones en paradigmadocs
 ;dominio: paradigmadocs, lista
 ;recorrido: paradigmadocs
-(define (prdoc-setsesion prdocs newsesion)
-  (list (prdoc-name prdocs) (prdoc-date prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) newsesion (prdoc-users prdocs) (prdoc-docs prdocs))
+(define (prdoc-setsesion prdcs newsesion)
+  (list (prdoc-name prdcs) (prdoc-date prdcs) (prdoc-encrypter prdcs) (prdoc-decrypter prdcs) newsesion (prdoc-users prdcs) (prdoc-docs prdcs))
   )
 ;descripción: actualizar lista de documentos en paradigmadocs
 ;dominio: paradigmadocs, lista
 ;recorrido: paradigmadocs
-(define (prdoc-setdocs prdocs newdocs)
-  (list (prdoc-name prdocs) (prdoc-date prdocs) (prdoc-encrypter prdocs) (prdoc-decrypter prdocs) (prdoc-sesion prdocs) (prdoc-users prdocs) newdocs)
+(define (prdoc-setdocs prdcs newdocs)
+  (list (prdoc-name prdcs) (prdoc-date prdcs) (prdoc-encrypter prdcs) (prdoc-decrypter prdcs) (prdoc-sesion prdcs) (prdoc-users prdcs) newdocs)
+  )
+
+;descripción: verifica si hay algún usuario en la paradigmadocs
+;dominio: paradigmadocs
+;recorrido: boolean
+(define (prdoc-thereusers? prdcs)
+  (not (null? (prdoc-users prdcs)))
+  )
+
+;descripción: agrega un nuevo usuario al final de la lista, verificando que el usuario no exista dentro de paradgimadocs
+;dominio: paradigmadocs, user, option(verifica si se encontro o no un usuario)
+;recorrido: paradigmadocs
+(define (prdoc-adduser users usr [opt 0])
+  (if(not (null? users))
+     (if (eqUser? (car users) usr)
+         (cons (car users) (prdoc-adduser (cdr users) usr 1))
+         (cons (car users) (prdoc-adduser (cdr users) usr opt))
+         )
+     (if (= opt 1)
+         null
+         (list usr)
+         )
+     )
+  )
+
+;descripción: agrega un usuario a la sesión activa
+;dominio: paradigmadocs, string: nombre de usuario
+;recorrido: paradigmadocs
+(define (prdoc-addactiveuser prdcs username)
+  (prdoc-setsesion prdcs (cons username (prdoc-sesion prdcs)))
+  )
+
+;descripción: agregar un nuevo documento a la plataforma paradigmadocs
+;dominio: paradigmadocs, docs
+;recorrido: paradigmadocs
+(define (prdoc-addnewdoc prdcs newdoc contenido date)
+  (prdoc-setdocs prdcs (cons (addnewversion newdoc ((prdoc-encrypter prdcs) contenido) date) (prdoc-docs prdcs)))
+  )
+
+;descripción: verifica la existencia de un usuario con su nombre de usuario y su contraseña encriptada
+;dominio: lista users, user
+;recorrido: boolean
+(define (rightuserpass? users usr)
+     (if(null? users)
+        #f
+        (if(and (eqUser? (car users) usr) (eqPass? (car users) usr) )
+           #t
+           (rightuserpass? (cdr users) usr)
+        )
+     )
   )
 
 ;descripción: verifica si existe algún usuario activo
@@ -110,6 +160,125 @@
   (car (prdoc-sesion prdcs))
   )
 
+;descripción: agrega diferentes accesos a un documento en particular
+;dominio: paradigmadocs, int (id del documento), accesos
+;recorrido: paradigmadocs
+(define (prdoc-addmultiplyaccess2doc prdcs idDoc accesos)
+  (define (addmultiplyaccess doc listacces)
+    (if (eq? listacces null)
+        doc
+        (addmultiplyaccess (addaccess doc (car listacces)) (cdr listacces))
+        )
+    )
+  (prdoc-setdocs prdcs (map (lambda (doc)
+                              (if (and (docs-rightid? doc idDoc) (isowner? doc (prdoc-activeuser prdcs)))
+                                  (addmultiplyaccess doc accesos)
+                                  doc
+                                  )
+                              ) (prdoc-docs prdcs)))
+  )
+
+;descripción: agrega contenido a un documento en particular, concatenandolo al anterior
+;dominio: paradigmadocs, int(id del documento a modificar), date, string(contenido) 
+;recorrido: paradigmadocs
+(define (prdoc-addcontent2somedoc prdcs idDoc date contenidoTexto)
+  (prdoc-setdocs prdcs (map
+                         (lambda(doc)
+                           (if (docs-rightid? doc idDoc)
+                               (if (or (isowner? doc (prdoc-activeuser prdcs)) (canwrite? doc (prdoc-activeuser prdcs)))
+                                   (addnewversionwithlast doc ((prdoc-encrypter prdcs) contenidoTexto) date)
+                                   doc
+                                   )
+                               doc
+                               )
+                           )
+                         (prdoc-docs prdcs))
+                 )
+  )
+
+;descripción: restaura una versión en particular de un documento en particular siempre y cuando el usuario activo sea el owner
+;dominio: paradigmadocs, int (id del documento), int (id de la versión)
+;recorrido: paradigmadocs
+(define (prdoc-restoreversion prdcs idDoc idVersion)
+  (prdoc-setdocs prdcs (map (lambda(doc)
+                               (if(docs-rightid? doc idDoc)
+                                  (if(isowner? doc (prdoc-activeuser prdcs))
+                                     (addnewversion doc (version-content (docs-getsomeversion doc idVersion)) (version-date (docs-getsomeversion doc idVersion)))
+                                     doc
+                                     )
+                                  doc
+                                  )
+                               )(prdoc-docs prdcs))
+                 )
+  )
+
+;descripción: elimina todos los accesos de un documento. Realizable solo por el owner
+;dominio: paradigmadocs
+;recorrido: paradigmadocs
+(define (prdoc-revokeallacceses prdcs)
+  (prdoc-setdocs prdcs (map (lambda(doc)
+                               (if(isowner? doc (prdoc-activeuser prdcs))
+                                  (docs-kickall doc)
+                                  doc
+                                  )
+                               )
+                             (prdoc-docs prdcs)))
+  )
+
+;descripción: funciona que filta todos los documento de acuerdo a si contienen un trozo de información en particular
+;dominio: paradigmadocs, string(texto buscado)
+;recorrido:
+(define (prdoc-filter4content prdcs searchText)
+  (filter (lambda(doc)
+                 (and (canread? doc (prdoc-activeuser prdcs)) (existcontentindoc? doc ((prdoc-encrypter prdcs) searchText)))
+                    ) (prdoc-docs prdcs))
+  )
+
+;descripción: función que elimina una cantidad de letras en particular de la última versión de un documento en específico
+;dominio: paradigmadocs, id, date, int (numero de caracteres a eliminar)
+;recorrido: paradigmadocs
+(define (prdoc-delete prdcs idDoc date numberOfCharecters)
+  (prdoc-setdocs prdcs (map (lambda(doc)
+                               (if(docs-rightid? doc idDoc)
+                                  (if(canwrite? doc (prdoc-activeuser prdcs))
+                                     (doc-deletchars doc numberOfCharecters date)
+                                     doc
+                                     )
+                                  doc
+                                  )
+                               )(prdoc-docs prdcs))
+                 )
+  )
+;descripción: busca dentro de un documento en particular una cadena que reemplazará por otra cadena específica
+;dominio: paradigmadocs, int(idDoc), date, string(palabra a buscar), string(palabra por la que se reemplazará)
+;recorrido: paradigmadocs
+(define (prdoc-searchreplace prdcs idDoc date searchText replaceText)
+  (prdoc-setdocs prdcs (map (lambda(doc)
+                               (if(docs-rightid? doc idDoc)
+                                  (if(canwrite? doc (prdoc-activeuser prdcs))
+                                     (doc-searchreplace doc date ((prdoc-encrypter prdcs) searchText) ((prdoc-encrypter prdcs) replaceText))
+                                     doc
+                                     )
+                                  doc
+                                  )
+                               )(prdoc-docs prdcs))
+                 )
+  )
+;descripción: aplica unos estilos específicos a un texto buscado
+;dominio: paradigmadocs, int(idDoc), date, string(palabra a buscar), list(lista de estilos)
+;recorrido: paradigmadocs
+(define (prdoc-applystyles prdcs idDoc date searchText estilos)
+  (prdoc-setdocs prdcs (map (lambda(doc)
+                               (if(docs-rightid? doc idDoc)
+                                  (if(canwrite? doc (prdoc-activeuser prdcs))
+                                     (doc-applystyles date doc searchText estilos (prdoc-encrypter prdcs) (prdoc-decrypter prdcs))
+                                     doc
+                                     )
+                                  doc
+                                  )
+                               )(prdoc-docs prdcs))
+                 )
+  )
 ;descrición: muestra los datos correspondientes al usuario ingresado, en el caos de no ingresar ningún usuario se mostrará información relacionada a todos los usuarios pertenecientes al paradigmadocs
 ;dominio: paradigmadocs, string (opcional, nombre de usuario)
 ;recorrido: string
