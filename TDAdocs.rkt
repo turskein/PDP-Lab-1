@@ -4,12 +4,13 @@
 (require "TDAversion.rkt")
 (require "TDAaccess.rkt")
 (require "EncryptFn_DencryptFn.rkt")
+(require "TDAcomentario.rkt")
 
-;descripción: constructor TDA user de formato (nombre, idDocs, propietario , date, versions, access)
+;descripción: constructor TDA user de formato (nombre, idDocs, propietario , date, versions, access, memoria)
 ;dominio: string, date, string
 ;recorrido: docs
 (define (docs name owner idDocs date)
-  (list name owner idDocs date '() '())
+  (list name owner idDocs date '() '() '())
   )
 
 ;descripción: se retorna el nombre del docs
@@ -52,18 +53,26 @@
 (define (docs-access dcs)
   (list-ref dcs 5)
   )
+
+(define (docs-memory dcs)
+  (list-ref dcs 6)
+  )
 ;descripción: se retorna el docs pero con la sección de versiones actualizada
 ;dominio: docs, list
 ;recorrido: docs
 (define (docs-setversions dcs newversion)
-  (list (docs-name dcs) (docs-owner dcs) (docs-id dcs) (docs-date dcs) newversion (docs-access dcs))
+  (list (docs-name dcs) (docs-owner dcs) (docs-id dcs) (docs-date dcs) newversion (docs-access dcs) (docs-memory dcs))
   )
 
 ;descripción: se retorna el docs pero con la sección de access actualizada
 ;dominio: docs, list
 ;recorrido: docs
 (define (docs-setaccess dcs newaccess)
-  (list (docs-name dcs) (docs-owner dcs) (docs-id dcs) (docs-date dcs) (docs-versions dcs) newaccess)
+  (list (docs-name dcs) (docs-owner dcs) (docs-id dcs) (docs-date dcs) (docs-versions dcs) newaccess (docs-memory dcs))
+  )
+
+(define (docs-setmemory dcs newmemory)
+  (list (docs-name dcs) (docs-owner dcs) (docs-id dcs) (docs-date dcs) (docs-versions dcs) (docs-access dcs) newmemory)
   )
 
 ;descripción: verifica si el id ingresado coincide con el del documento
@@ -101,6 +110,12 @@
 ;recorrido: version
 (define (docs-lastversion dcs)
   (car (docs-versions dcs))
+  )
+;descripción: retorna la última versión existente en memory
+;dominio: docs
+;recorrido: versión
+(define (docs-lastmemory dcs)
+  (car (docs-memory dcs))
   )
 ;descripción: verifica si el nombre del acceso en la entrada ya existe dentro de la lista de accesos al documento
 ;dominio: lista de accesos, access
@@ -157,7 +172,10 @@
     (if(eq? listaccess null)
        #f
        (if(string=? (access-user (car listaccess)) user)
-          #t
+          (if (eq? (access-kind (car listaccess)) #\w)
+              #t
+              #f
+              )
           (can? (cdr listaccess) user)
           )
        )
@@ -165,6 +183,12 @@
   (or (can? (docs-access dcs) user) (isowner? dcs user))
   )
 
+;descripción: restaura la memoria de un documento a vacío
+;dominio: doc
+;recorrido: doc
+(define (docs-restartmemory dcs)
+  (docs-setmemory dcs null)
+  )
 ;descripción: retorna una versión en particular del documento
 ;dominio: docs, int(id de versión)
 ;recorrido: versión
@@ -197,6 +221,25 @@
            )
         )
      )
+  )
+;descripción: cuestiona si el usuario ingresado puede comentar el documento
+;dominio: docs, string(nombre de usuario)
+;recorrido: boolean
+;recursividad: cola
+(define (cancomment? dcs user)
+  (define (can? listaccess user)
+    (if(eq? listaccess null)
+       #f
+       (if(string=? (access-user (car listaccess)) user)
+          (if (eq? (access-kind (car listaccess)) #\c)
+              #t
+              #f
+              )
+          (can? (cdr listaccess) user)
+          )
+       )
+    )
+  (or (can? (docs-access dcs) user) (isowner? dcs user) (canwrite? dcs user))
   )
 
 ;descripción: se mostrará strings donde se señala el usuario y el tipo de accesos que tiene
@@ -269,10 +312,41 @@
   )
 
 ;descripción: aplica estilos en particular una frase en específico
-;dominio: doc, string(texto buscado), list(estilos)
+;dominio: doc, string(texto buscado), list(estilos), función(encriptador), función(desencriptador)
 ;recorrido: doc
 (define (doc-applystyles date dcs searchText estilos encrypter decrypter)
   (addnewversion dcs (encrypter (string-replace (decrypter (version-content (docs-lastversion dcs))) searchText (string-append (string-join estilos) searchText (string-join estilos)))) date)
+  )
+
+;descripción: agrega un comentario relacionado a un texto seleccionado dentro de la versión actual
+;dominio: doc, date, string(texto seleccionado), string(texto del comentario), función(encriptador), función(desencriptador)
+;recorrido: docs
+(define (doc-commentsometext dcs date selectedText commenText encrypter decrypter)
+  (if (existsubstring? selectedText (decrypter (version-content (docs-lastversion dcs))))
+      (docs-setversions dcs (cons (version-addcomment (docs-lastversion dcs) (comentario (encrypter selectedText) (encrypter commenText) date)) (cdr (docs-versions dcs))))
+      dcs
+      )
+  )
+;descripción: traspasa versiones de la sección versiones a memory una por una
+;dominio: doc, int(cantidad de versiones a traspasar)
+;recorrido: doc
+;recursividad: cola
+(define (doc-deshacer dcs numberOfUndo)
+  (if (or (= (length (docs-versions dcs)) 0) (= numberOfUndo 0))
+      dcs
+      (doc-deshacer (docs-setmemory (docs-setversions dcs (cdr (docs-versions dcs))) (cons (docs-lastversion dcs) (docs-memory dcs))) (- numberOfUndo 1) )
+      )
+  )
+
+;descripción: traspasa versiones de la sección memory a versiones una por una
+;dominio: doc, int(cantidad de versiones a traspasar)
+;recorrido: doc
+;recursividad: cola
+(define (doc-rehacer dcs numberOfRedo)
+  (if (or (= (length (docs-memory dcs)) 0) (= numberOfRedo 0))
+      dcs
+      (doc-rehacer (docs-setmemory (docs-setversions dcs (cons (docs-lastmemory dcs) (docs-versions dcs))) (cdr (docs-memory dcs))) (- numberOfRedo 1))
+      )
   )
 
 (provide (all-defined-out))

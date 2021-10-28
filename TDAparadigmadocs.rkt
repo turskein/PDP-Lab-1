@@ -185,8 +185,8 @@
   (prdoc-setdocs prdcs (map
                          (lambda(doc)
                            (if (docs-rightid? doc idDoc)
-                               (if (or (isowner? doc (prdoc-activeuser prdcs)) (canwrite? doc (prdoc-activeuser prdcs)))
-                                   (addnewversionwithlast doc ((prdoc-encrypter prdcs) contenidoTexto) date)
+                               (if (canwrite? doc (prdoc-activeuser prdcs))
+                                   (docs-restartmemory (addnewversionwithlast doc ((prdoc-encrypter prdcs) contenidoTexto) date))
                                    doc
                                    )
                                doc
@@ -203,7 +203,7 @@
   (prdoc-setdocs prdcs (map (lambda(doc)
                                (if(docs-rightid? doc idDoc)
                                   (if(isowner? doc (prdoc-activeuser prdcs))
-                                     (addnewversion doc (version-content (docs-getsomeversion doc idVersion)) (version-date (docs-getsomeversion doc idVersion)))
+                                     (docs-restartmemory (addnewversion doc (version-content (docs-getsomeversion doc idVersion)) (version-date (docs-getsomeversion doc idVersion))))
                                      doc
                                      )
                                   doc
@@ -241,7 +241,7 @@
   (prdoc-setdocs prdcs (map (lambda(doc)
                                (if(docs-rightid? doc idDoc)
                                   (if(canwrite? doc (prdoc-activeuser prdcs))
-                                     (doc-deletchars doc numberOfCharecters date)
+                                     (docs-restartmemory (doc-deletchars doc numberOfCharecters date))
                                      doc
                                      )
                                   doc
@@ -256,7 +256,7 @@
   (prdoc-setdocs prdcs (map (lambda(doc)
                                (if(docs-rightid? doc idDoc)
                                   (if(canwrite? doc (prdoc-activeuser prdcs))
-                                     (doc-searchreplace doc date ((prdoc-encrypter prdcs) searchText) ((prdoc-encrypter prdcs) replaceText))
+                                     (docs-restartmemory (doc-searchreplace doc date ((prdoc-encrypter prdcs) searchText) ((prdoc-encrypter prdcs) replaceText)))
                                      doc
                                      )
                                   doc
@@ -271,7 +271,53 @@
   (prdoc-setdocs prdcs (map (lambda(doc)
                                (if(docs-rightid? doc idDoc)
                                   (if(canwrite? doc (prdoc-activeuser prdcs))
-                                     (doc-applystyles date doc searchText estilos (prdoc-encrypter prdcs) (prdoc-decrypter prdcs))
+                                     (docs-restartmemory (doc-applystyles date doc searchText estilos (prdoc-encrypter prdcs) (prdoc-decrypter prdcs)))
+                                     doc
+                                     )
+                                  doc
+                                  )
+                               )(prdoc-docs prdcs))
+                 )
+  )
+
+;descripción: agrega un comentario a un documento en particular
+;dominio: paradigmadocs, int(idDoc), date, string(palabra a comentar), string(comentario)
+;recorrido: paradigmadocs
+(define (prdoc-comment prdcs idDoc date selectedText commenText)
+  (prdoc-setdocs prdcs (map (lambda(doc)
+                               (if(docs-rightid? doc idDoc)
+                                  (if(cancomment? doc (prdoc-activeuser prdcs))
+                                     (doc-commentsometext doc date selectedText commenText (prdoc-encrypter prdcs) (prdoc-decrypter prdcs))
+                                     doc
+                                     )
+                                  doc
+                                  )
+                               )(prdoc-docs prdcs))
+                 )
+  )
+;descripción: traspasa una cantidad de versiones específicas de versiones a memory en un documento en particular
+;dominio: paradigmadocs, int(id del documento), int(numero de veces a traspasar versiones)
+;recorrido: paradigmadocs
+(define (prdoc-ctrlZ prdcs idDoc numberOfUndo)
+  (prdoc-setdocs prdcs (map (lambda(doc)
+                               (if(docs-rightid? doc idDoc)
+                                  (if(canwrite? doc (prdoc-activeuser prdcs))
+                                     (doc-deshacer doc numberOfUndo)
+                                     doc
+                                     )
+                                  doc
+                                  )
+                               )(prdoc-docs prdcs))
+                 )
+  )
+;descripción: traspasa una cantidad de versiones específicas de memory a versiones en un documento en particular
+;dominio: paradigmadocs, int(id del documento), int(numero de veces a traspasar versiones)
+;recorrido: paradigmadocs
+(define (prdoc-ctrlY prdcs idDoc numberOfRedo)
+  (prdoc-setdocs prdcs (map (lambda(doc)
+                               (if(docs-rightid? doc idDoc)
+                                  (if(canwrite? doc (prdoc-activeuser prdcs))
+                                     (doc-rehacer doc numberOfRedo)
                                      doc
                                      )
                                   doc

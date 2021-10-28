@@ -4,7 +4,7 @@
 ;dominio: string, int, date
 ;recorrido: version
 (define (version content id date)
-  (list content id date)
+  (list content id date '())
   )
 
 ;descripción: se obtiene el contenido de la versión
@@ -28,6 +28,13 @@
   (car (cdr (cdr vrsn)))
   )
 
+;descripción: retorna los comentarios de una versión en particular
+;dominio: versión
+;recorrido: comment's
+(define (version-comment vrsn)
+  (list-ref vrsn 3)
+  )
+
 ;descripción: retorna el largo del contenido de una versión
 ;dominio: versión
 ;recorrido: int(largo del contenido de una versión)
@@ -35,11 +42,24 @@
   (string-length (version-content vrsn))
   )
 
+;descripción: setter de comentarios de las versiones
+;dominio: versión, lista(lista de comentarios)
+;recorrido: versión
+(define (version-setcomment vrsn cmnts)
+  (list (version-content vrsn) (version-id vrsn) (version-date vrsn) cmnts)
+  )
+
 ;descripción: se agrega el contenido nuevo a la el contenido de una versión anterior, agregando en uno el ID
 ;dominio: versión (version anterior del documento), string (nuevo contenido), date
 ;recorrido: versión
 (define (addcontent lastvrsn newcontent date)
   (version (string-append (version-content lastvrsn) newcontent) (+ 1 (version-id lastvrsn)) date)
+  )
+;descripción: agrega un comentario a la versión
+;dominio: versión, comentario
+;recorrido: versión
+(define (version-addcomment vrsn cmnt)
+  (version-setcomment vrsn (cons cmnt (version-comment vrsn)))
   )
 
 (provide (all-defined-out))
