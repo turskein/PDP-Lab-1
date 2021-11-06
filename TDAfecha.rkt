@@ -1,4 +1,8 @@
 #lang racket
+;Representacin
+; int(dia), int(mes), int(anio)
+
+;Contructor
 ;Descripción: Constructor de TDA fecha
 ;dominio: int, int , int
 ;recorrido: list
@@ -11,25 +15,28 @@
        null
     )
 )
+
+;Pertenencia
 ;Descripción: Pertenencia TDA fecha
 ;dominio: list
 ;recorrido: boolean
-(define (date? date)(
-if (eq? date empty)
-  #f
-  (if(and (integer? (car date)) (integer? (car (cdr date))) (integer? (car (cdr (cdr date)))))
-       (if(and (and (> (car date) 0) (< (car date) 32)) (and (> (car (cdr date)) 0) (< (car (cdr date)) 13)) (> (car (cdr (cdr date))) 0))
+(define (date? date)
+  (if (eq? date empty)
+      #f
+      (if(and (integer? (car date)) (integer? (car (cdr date))) (integer? (car (cdr (cdr date)))))
+         (if(and (and (> (car date) 0) (< (car date) 32)) (and (> (car (cdr date)) 0) (< (car (cdr date)) 13)) (> (car (cdr (cdr date))) 0))
             #t
             #f
             )
-       #f
-    )
-)
-)
-;Descripción: Modificadores
-;dominio: int, list
-;recorrido: list
+         #f
+         )
+      )
+  )
 
+;MODIFICADORES
+;Descripción: modifica el dia de una fecha
+;dominio: int, date
+;recorrido: date
 (define (setDay newDay date)(
    if(eq? date null)
       null
@@ -39,6 +46,9 @@ if (eq? date empty)
   )
 )
 
+;Descripción: modifica el mes de una fecha
+;dominio: int, date
+;recorrido: date
 (define (setMonth newMonth date)(
    if(eq? date null)
       null(
@@ -49,24 +59,29 @@ if (eq? date empty)
 )
 )
 
+;Descripción: modifica el anio de una fecha
+;dominio: int, date
+;recorrido: date
 (define (setYear newYear date)(
     if(> newYear 0)
       (list (car date) (car (cdr date)) newYear)
       null
   )
 )
-
-;Descripción: Selectores
-;dominio: list
-;recorrido: int
-;Seleccionar Dia
+;SELECTORES
+;Descripción: retorna el dia de una fecha
+;dominio: date
+;recorrido: date
 (define (getDay date)(
     if(date? date)
       (car date)
       -1
   )
 )
-;Seleccionar Mes
+
+;Descripción: retorna el mes de una fecha
+;dominio: date
+;recorrido: date
 (define (getMonth date)(
     if(date? date)
       (car (cdr date))
@@ -74,7 +89,9 @@ if (eq? date empty)
   )
 )
 
-;Seleccionar anio
+;Descripción: retorna el anio de una fecha
+;dominio: date
+;recorrido: date
 (define (getYear date)(
      if(date? date)
       (car (cdr (cdr date)))
@@ -82,6 +99,10 @@ if (eq? date empty)
   )
 )
 
+;Funciones adicionales
+;descripción: función que retorna una versión en string de un fecha
+;dominio: date
+;retorno: string
 (define (date->string date)
   (string-append (number->string (getDay date))" "(number->string (getMonth date)) " " (number->string (getYear date)))
   )

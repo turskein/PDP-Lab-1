@@ -1,12 +1,15 @@
 #lang racket
+;REPRESENTACIÓN USER
+; string(
 
+;CONSTRUCTOR
 ;descripción: Constructor TDA user
 ;dominio: string, string, date
 ;recorrido: user
 (define (user name pass date)(
         list name pass date
 ))
-
+;SELECTORES
 ;descripción: se retorna el nombre del usuario
 ;dominio: user
 ;recorrido: string
@@ -24,6 +27,9 @@
 (define (user-date uss)
   (car (cdr (cdr uss)))
   )
+
+;-FUNCIONES ADICIONALES-
+;FUNCIONES BOOLEANAS
 
 ;descripción: verifica si coinciden los nombres de usuario
 ;dominio: user, user

@@ -1,5 +1,8 @@
 #lang racket
+;REPRESENTACIÓN
+; string(nombre de usuario), char(tipo de acceso al documento)
 
+;CONSTRUCTOR
 ;descripción: constructor de TDA access compuesto por: nombre de usuario y tipo de acceso al documento
 ;dominio: string, char
 ;recorrido: access
@@ -7,6 +10,7 @@
   (list nameuser kind)
   )
 
+;SELECTORES
 ;descripción: retorna el nombre del usuario del acceso
 ;dominio: access
 ;recorrido: string(nombre de usuario)

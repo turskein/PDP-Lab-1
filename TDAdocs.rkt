@@ -5,14 +5,18 @@
 (require "TDAaccess.rkt")
 (require "EncryptFn_DencryptFn.rkt")
 (require "TDAcomentario.rkt")
+;REPRESENTACIÓN
+;string(nombre), int(idDoc), string(nombre del propietario) , date, list(lista de versions), list(lista de access), list(lista versiones)
 
-;descripción: constructor TDA user de formato (nombre, idDocs, propietario , date, versions, access, memoria)
+;CONSTRUCTOR
+;descripción: TDA docs de formato
 ;dominio: string, date, string
 ;recorrido: docs
 (define (docs name owner idDocs date)
   (list name owner idDocs date '() '() '())
   )
 
+;SELECTORES
 ;descripción: se retorna el nombre del docs
 ;dominio: docs
 ;recorrido: string
@@ -57,6 +61,22 @@
 (define (docs-memory dcs)
   (list-ref dcs 6)
   )
+
+;descripción: retorna la última versión de un documento
+;dominio: docs
+;recorrido: version
+(define (docs-lastversion dcs)
+  (car (docs-versions dcs))
+  )
+
+;descripción: retorna la última versión existente en memory
+;dominio: docs
+;recorrido: versión
+(define (docs-lastmemory dcs)
+  (car (docs-memory dcs))
+  )
+
+;MODIFICADORES
 ;descripción: se retorna el docs pero con la sección de versiones actualizada
 ;dominio: docs, list
 ;recorrido: docs
@@ -75,6 +95,9 @@
   (list (docs-name dcs) (docs-owner dcs) (docs-id dcs) (docs-date dcs) (docs-versions dcs) (docs-access dcs) newmemory)
   )
 
+;-FUNCIONES ADICIONALES-
+
+;FUNCIONES BOOLEANAS
 ;descripción: verifica si el id ingresado coincide con el del documento
 ;dominio: docs, int
 ;recorrido: boolean
@@ -89,66 +112,6 @@
   (eq? (docs-owner dcs) user )
   )
 
-;descripción: ingresa una nueva versión a la lista de versiones existente, en caso de no existir una la genera con id 0, pero en caso de existir una requerirá la última versión para generar otra con el id en serie
-;dominio: docs, string(contenido), date
-;recorrido: docs
-(define (addnewversion dcs content date)
-  (if(eq? (docs-versions dcs) null)
-     (docs-setversions dcs (cons (addcontent (version "" -1 date) content date) (docs-versions dcs)))
-     (docs-setversions dcs (cons (addcontent (version "" (version-id (car (docs-versions dcs))) date) content date) (docs-versions dcs)))
-     )
-  )
-
-;descripción: agrega una nueva versión al documento generando una versión y apilandola a la anterior, o bien recién creandola
-;dominio: docs, string
-;recorrido: docs
-(define (addnewversionwithlast dcs content date)
-  (docs-setversions dcs (cons (addcontent (car (docs-versions dcs)) content date) (docs-versions dcs)))
-  )
-;descripción: retorna la última versión de un documento
-;dominio: docs
-;recorrido: version
-(define (docs-lastversion dcs)
-  (car (docs-versions dcs))
-  )
-;descripción: retorna la última versión existente en memory
-;dominio: docs
-;recorrido: versión
-(define (docs-lastmemory dcs)
-  (car (docs-memory dcs))
-  )
-;descripción: verifica si el nombre del acceso en la entrada ya existe dentro de la lista de accesos al documento
-;dominio: lista de accesos, access
-;recorrido: booleano
-;recursividad: natural
-(define existaccess
-  (lambda (listaccess acs)
-    (if (eq? listaccess null)
-        #f
-        (if(eq? (access-user (car listaccess)) (access-user acs) )
-           #t
-           (existaccess (cdr listaccess) acs)
-           )
-        )
-    )
-  )
-;descripción: agrega un nuevo access al documento y si existe lo actualiza a uno nuevo
-;dominio: docs, access
-;recorrido: docs
-(define (addaccess dcs newaccess)
-  (if(not(isowner? dcs (access-user newaccess)))
-     (if(existaccess (docs-access dcs) newaccess)
-        (docs-setaccess dcs (map (lambda (acs)
-                                   (if(eq? (access-user acs) (access-user newaccess))
-                                      newaccess
-                                      acs
-                                      )
-                                   ) (docs-access dcs)))
-        (docs-setaccess dcs (cons newaccess (docs-access dcs)))
-        )
-     dcs
-     )
-  )
 ;descripción: verifica en todas las versiones del documento si existe un contenido en específico, ya sea sub-string o no
 ;dominio: doc, string(texto buscado)
 ;recorrido: boolean
@@ -161,6 +124,22 @@
          (existcontentindoc? (docs-setversions doc (cdr (docs-versions doc))) searchText)
          )
       )
+  )
+
+;descripción: verifica si el nombre del acceso en la entrada ya existe dentro de la lista de accesos
+;dominio: lista de accesos, access
+;recorrido: booleano
+;recursividad: cola
+(define existaccess
+  (lambda (listaccess acs)
+    (if (eq? listaccess null)
+        #f
+        (if(eq? (access-user (car listaccess)) (access-user acs) )
+           #t
+           (existaccess (cdr listaccess) acs)
+           )
+        )
+    )
   )
 
 ;descripción: cuestiona si el usuario ingresado puede escribir en el cocumento
@@ -181,6 +160,75 @@
        )
     )
   (or (can? (docs-access dcs) user) (isowner? dcs user))
+  )
+
+;descripción: cuestiona si el usuario ingresado puede leer el cocumento
+;dominio: docs, string(nombre de usuario)
+;recorrido: boolean
+;recursividad: cola
+(define (canread? dcs user)
+  (if(or (isowner? dcs user) (canwrite? dcs user))
+     #t
+     (if(eq? (docs-access dcs) null)
+        #f
+        (if(and (string=? (access-user (car (docs-access dcs))) user) (eq? (access-kind (car (docs-access dcs))) #\r))
+           #t
+           (canread? (docs-setaccess dcs (cdr(docs-access dcs) )) user)
+           )
+        )
+     )
+  )
+
+;descripción: cuestiona si el usuario ingresado puede comentar el documento
+;dominio: docs, string(nombre de usuario)
+;recorrido: boolean
+;recursividad: cola
+(define (cancomment? dcs user)
+  (define (can? listaccess user)
+    (if(eq? listaccess null)
+       #f
+       (if(string=? (access-user (car listaccess)) user)
+          (if (eq? (access-kind (car listaccess)) #\c)
+              #t
+              #f
+              )
+          (can? (cdr listaccess) user)
+          )
+       )
+    )
+  (or (can? (docs-access dcs) user) (isowner? dcs user) (canwrite? dcs user))
+  )
+
+;descripción: busca en una cadena de texto si existe otra cadena de texto
+;dominio: string(palabra a buscar), string(palabra en la que se buscará), int(opcional, inicio de la palabra que se buscará),int(opcional, largo de la palabra que se buscará)
+;recorrido: boolean
+;recursión: cola
+(define (existsubstring? lfword lfinword [init 0] [end (string-length lfword)])
+    (if(> end (string-length lfinword))
+       #f
+       (if(string-ci=? (substring lfinword init end) lfword)
+          #t
+          (existsubstring? lfword lfinword (+ init 1) (+ end 1))
+          )
+       )
+    )
+
+;descripción: agrega un nuevo access al documento y si existe lo actualiza a uno nuevo
+;dominio: docs, access
+;recorrido: docs
+(define (addaccess dcs newaccess)
+  (if(not(isowner? dcs (access-user newaccess)))
+     (if(existaccess (docs-access dcs) newaccess)
+        (docs-setaccess dcs (map (lambda (acs)
+                                   (if(eq? (access-user acs) (access-user newaccess))
+                                      newaccess
+                                      acs
+                                      )
+                                   ) (docs-access dcs)))
+        (docs-setaccess dcs (cons newaccess (docs-access dcs)))
+        )
+     dcs
+     )
   )
 
 ;descripción: restaura la memoria de un documento a vacío
@@ -205,43 +253,7 @@
 (define (docs-kickall dcs)
   (docs-setaccess dcs '())
   )
-
-;descripción: cuestiona si el usuario ingresado puede leer el cocumento
-;dominio: docs, string(nombre de usuario)
-;recorrido: boolean
-;recursividad: cola
-(define (canread? dcs user)
-  (if(or (isowner? dcs user) (canwrite? dcs user))
-     #t
-     (if(eq? (docs-access dcs) null)
-        #f
-        (if(and (string=? (access-user (car (docs-access dcs))) user) (eq? (access-kind (car (docs-access dcs)))) #\r)
-           #t
-           (canread? (docs-setaccess dcs (cdr(docs-access dcs) )) user)
-           )
-        )
-     )
-  )
-;descripción: cuestiona si el usuario ingresado puede comentar el documento
-;dominio: docs, string(nombre de usuario)
-;recorrido: boolean
-;recursividad: cola
-(define (cancomment? dcs user)
-  (define (can? listaccess user)
-    (if(eq? listaccess null)
-       #f
-       (if(string=? (access-user (car listaccess)) user)
-          (if (eq? (access-kind (car listaccess)) #\c)
-              #t
-              #f
-              )
-          (can? (cdr listaccess) user)
-          )
-       )
-    )
-  (or (can? (docs-access dcs) user) (isowner? dcs user) (canwrite? dcs user))
-  )
-
+; FUNCIONES QUE MUESTRAN CONTENIDO
 ;descripción: se mostrará strings donde se señala el usuario y el tipo de accesos que tiene
 ;dominio: doc
 ;recorrido: string
@@ -270,38 +282,43 @@
   (if(= option 0)
      (if(and (canread? doc user) (not (eq? (docs-versions doc) null)))
         (if(isowner? doc user)
-           (string-append "Nombre documento: " (docs-name doc) "\n" "Id-doc: "  (number->string(docs-id doc)) "\n" "Fecha de creación: " (date->string (docs-date doc)) "\n" "----Accesos---- " "\n" (docs-displayaccess doc) "\n" "---Versiones--- " "\n" "versión: " (number->string (version-id (car (docs-versions doc)))) "\n" "Fecha versión: " (date->string (version-date (car (docs-versions doc)))) "\n" "Contenido: "(decrypter (version-content (car (docs-versions doc)))) "\n" (docs-readable (docs-setversions doc (cdr (docs-versions doc))) user decrypter 1))
-           (string-append "Nombre documento: " (docs-name doc) "\n" "versión : " (number->string (version-id (car (docs-versions doc)))) "\n" "Fecha versión: " (date->string (version-date (car (docs-versions doc)))) "\n" "Contenido: "(decrypter (version-content (car (docs-versions doc))))  "\n")
+           (string-append "\n###Nombre documento: " (docs-name doc)"\n" "Propietario: " (docs-owner doc) "\n" "Id-doc: "  (number->string(docs-id doc)) "\n" "Fecha de creación: " (date->string (docs-date doc)) "\n" "----Accesos---- " "\n" (docs-displayaccess doc) "\n" "---Versiones--- " "\n" "-%Versión: " (number->string (version-id (docs-lastversion doc))) "\n" "Fecha versión: " (date->string (version-date (docs-lastversion doc))) "\n" "Contenido: "(decrypter (version-content (docs-lastversion doc))) "\n" "Comentarios: " (version-displaycomments (docs-lastversion doc) decrypter) "\n" (docs-readable (docs-setversions doc (cdr (docs-versions doc))) user decrypter 1))
+           (string-append "\n###Nombre documento: " (docs-name doc) "\n" "Propietario: " (docs-owner doc) "-%Versión : " (number->string (version-id (docs-lastversion doc))) "\n" "Fecha versión: " (date->string (version-date (docs-lastversion doc))) "\n" "Contenido: "(decrypter (version-content (docs-lastversion doc)))  "\n")
            )
         ""
         )
      (if(eq? (docs-versions doc) null)
         ""
-        (string-append "Versión: " (number->string (version-id (car (docs-versions doc)))) "\n" "Fecha versión: " (date->string (version-date (car (docs-versions doc)))) "\n" "Contenido: " (decrypter (version-content (car (docs-versions doc)))) "\n" (docs-readable (docs-setversions doc (cdr (docs-versions doc))) user decrypter 1))
+        (string-append "-%Versión: " (number->string (version-id (docs-lastversion doc))) "\n" "Fecha versión: " (date->string (version-date (docs-lastversion doc))) "\n" "Contenido: " (decrypter (version-content (docs-lastversion doc))) "\n" "Comentarios: " (version-displaycomments (docs-lastversion doc) decrypter) "\n" (docs-readable (docs-setversions doc (cdr (docs-versions doc))) user decrypter 1))
         )
      )
   )
-;descripción: busca en una cadena de texto si existe otra cadena de texto
-;dominio: string(palabra a buscar), string(palabra en la que se buscará), int(opcional, inicio de la palabra que se buscará),int(opcional, largo de la palabra que se buscará)
-;recorrido: boolean
-;recursión: cola
-(define (existsubstring? lfword lfinword [init 0] [end (string-length lfword)])
-    (if(> end (string-length lfinword))
-       #f
-       (if(string-ci=? (substring lfinword init end) lfword)
-          #t
-          (existsubstring? lfword lfinword (+ init 1) (+ end 1))
-          )
-       )
-    )
+
+;FUNCIONES QUE MODIFICAN VERSIONES
+;descripción: ingresa una nueva versión a la lista de versiones existente, en caso de no existir una la genera con id 0, pero en caso de existir una requerirá la última versión para generar otra con el id en serie
+;dominio: docs, string(contenido), date
+;recorrido: docs
+(define (addnewversion dcs content date)
+  (if(eq? (docs-versions dcs) null)
+     (docs-setversions dcs (cons (addcontent (version "" -1 date) content date) (docs-versions dcs)))
+     (docs-setversions dcs (cons (addcontent (version "" (version-id (car (docs-versions dcs))) date) content date) (docs-versions dcs)))
+     )
+  )
+
+;descripción: agrega una nueva versión al documento generando una versión y apilandola a la anterior, o bien recién creandola
+;dominio: docs, string, date
+;recorrido: docs
+(define (addnewversionwithlast dcs content date)
+  (docs-setversions dcs (cons (addcontent (car (docs-versions dcs)) content date) (docs-versions dcs)))
+  )
 
 ;descripción: elimina una cantidad de caracteres de la última versión del documento
 ;dominio: doc, int(cantidad de caracteres)
 ;recorrido: doc
-(define (doc-deletchars dcs number date)
-  (if(> number (version-length (docs-lastversion dcs)))
+(define (doc-deletchars dcs number date encrypter decrypter)
+  (if(> number (string-length (decrypter (version-content (docs-lastversion dcs)))))
      (addnewversion dcs "" date)
-     (addnewversion dcs (substring (version-content(docs-lastversion dcs)) 0 (- (version-length (docs-lastversion dcs)) (* number 2))) date)
+     (addnewversion dcs (encrypter (substring (decrypter (version-content(docs-lastversion dcs))) 0 (- (string-length (decrypter (version-content (docs-lastversion dcs)))) number))) date)
      )
   )
 ;descripción: reemplaza un texto buscado dentro de la última versión por un texto en particular

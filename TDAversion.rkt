@@ -1,5 +1,6 @@
 #lang racket
-
+(require "TDAcomentario.rkt")
+;CONSTRUCTOR
 ;descripción: constructor TDA versión de la forma: (contendio , id)
 ;dominio: string, int, date
 ;recorrido: version
@@ -7,6 +8,7 @@
   (list content id date '())
   )
 
+;SELECTORES
 ;descripción: se obtiene el contenido de la versión
 ;dominio: versión
 ;recorrido: string
@@ -35,13 +37,14 @@
   (list-ref vrsn 3)
   )
 
-;descripción: retorna el largo del contenido de una versión
+;descripción: se obtiene el último comentario
 ;dominio: versión
-;recorrido: int(largo del contenido de una versión)
-(define (version-length vrsn)
-  (string-length (version-content vrsn))
+;recorrido: comentario
+(define (version-lastcomment vrsn)
+  (car (version-comment vrsn))
   )
 
+;MODIFICADORES
 ;descripción: setter de comentarios de las versiones
 ;dominio: versión, lista(lista de comentarios)
 ;recorrido: versión
@@ -62,4 +65,18 @@
   (version-setcomment vrsn (cons cmnt (version-comment vrsn)))
   )
 
+;FUNCIONES ADICIONALES
+;descripción: retorna el largo del contenido de una versión
+;dominio: versión
+;recorrido: int(largo del contenido de una versión)
+(define (version-length vrsn)
+  (string-length (version-content vrsn))
+  )
+
+(define (version-displaycomments vrsn decrypter)
+  (if (null? (version-comment vrsn))
+      ""
+      (string-append (decrypter (com-selectedtext (version-lastcomment vrsn))) "->" (decrypter (com-commentext (version-lastcomment vrsn))) "/" (version-displaycomments (version-setcomment vrsn (cdr (version-comment vrsn))) decrypter))
+      )
+  )
 (provide (all-defined-out))

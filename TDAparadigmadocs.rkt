@@ -5,14 +5,20 @@
 (require "TDAversion.rkt")
 (require "TDAdocs.rkt")
 (require "TDAaccess.rkt")
-;Constructo de paradigmadocs
+
+;REPRESENTACIÓN
+;string(nombre de la plataforma), date(fecha creación plataforma), función(función de encriptación), función(función de desencriptación), list(lista de usuarios registrado en la plataforma), list(lista de documentos creados en la plataforma)
+
+;CONSTRUCTOR
+;descripción: constructor de paradigmadocs
 ;dominio: str, date, EncryptFn, DencryptFn
-;recorrido: lista compuesta por = nombre, fecha, EncryptFn, DencryptFn, sesión activa, lista de usuario y lista de documentos
+;recorrido: paradigmadocs
 (define paradigmadocs(lambda (name date encrypter decrypter)(
         list name date encrypter decrypter '() '() '()
     )
 ))
 
+;SELECTORES
 ;descripción: selector de nombre de paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: string
@@ -69,6 +75,8 @@
    )
   )
 
+;MODIFICADORES
+
 ;descripción: actualizar lista de usuarios registrados en paradigmadocs
 ;dominio: paradigmadocs, lista
 ;recorrido: paradigmadocs
@@ -89,6 +97,9 @@
   (list (prdoc-name prdcs) (prdoc-date prdcs) (prdoc-encrypter prdcs) (prdoc-decrypter prdcs) (prdoc-sesion prdcs) (prdoc-users prdcs) newdocs)
   )
 
+;-FUNCIONES ADICIONALES-
+;FUNCIONES BOOLEANAS
+
 ;descripción: verifica si hay algún usuario en la paradigmadocs
 ;dominio: paradigmadocs
 ;recorrido: boolean
@@ -96,9 +107,32 @@
   (not (null? (prdoc-users prdcs)))
   )
 
+;descripción: verifica la existencia de un usuario con su nombre de usuario y su contraseña encriptada
+;dominio: lista users, user
+;recorrido: boolean
+(define (rightuserpass? users usr)
+     (if(null? users)
+        #f
+        (if(and (eqUser? (car users) usr) (eqPass? (car users) usr) )
+           #t
+           (rightuserpass? (cdr users) usr)
+        )
+     )
+  )
+
+;descripción: verifica si existe algún usuario activo
+;dominio: paradigmadocs
+;recorrido: boolean
+(define (prdoc-theresesion? prdcs)
+  (not (eq? (prdoc-sesion prdcs) null))
+  )
+
+;FUNCIONES QUE MODIFICAN
+
 ;descripción: agrega un nuevo usuario al final de la lista, verificando que el usuario no exista dentro de paradgimadocs
 ;dominio: paradigmadocs, user, option(verifica si se encontro o no un usuario)
 ;recorrido: paradigmadocs
+;recursión: natural
 (define (prdoc-adduser users usr [opt 0])
   (if(not (null? users))
      (if (eqUser? (car users) usr)
@@ -124,26 +158,6 @@
 ;recorrido: paradigmadocs
 (define (prdoc-addnewdoc prdcs newdoc contenido date)
   (prdoc-setdocs prdcs (cons (addnewversion newdoc ((prdoc-encrypter prdcs) contenido) date) (prdoc-docs prdcs)))
-  )
-
-;descripción: verifica la existencia de un usuario con su nombre de usuario y su contraseña encriptada
-;dominio: lista users, user
-;recorrido: boolean
-(define (rightuserpass? users usr)
-     (if(null? users)
-        #f
-        (if(and (eqUser? (car users) usr) (eqPass? (car users) usr) )
-           #t
-           (rightuserpass? (cdr users) usr)
-        )
-     )
-  )
-
-;descripción: verifica si existe algún usuario activo
-;dominio: paradigmadocs
-;recorrido: boolean
-(define (prdoc-theresesion? prdcs)
-  (not (eq? (prdoc-sesion prdcs) null))
   )
 
 ;descripción: retira la sesión activa de paradigmadocs
@@ -241,7 +255,7 @@
   (prdoc-setdocs prdcs (map (lambda(doc)
                                (if(docs-rightid? doc idDoc)
                                   (if(canwrite? doc (prdoc-activeuser prdcs))
-                                     (docs-restartmemory (doc-deletchars doc numberOfCharecters date))
+                                     (docs-restartmemory (doc-deletchars doc numberOfCharecters date (prdoc-encrypter prdcs) (prdoc-decrypter prdcs)))
                                      doc
                                      )
                                   doc
@@ -325,6 +339,9 @@
                                )(prdoc-docs prdcs))
                  )
   )
+
+;FUNCIONES QUE MUESTRAN CONTENIDO
+
 ;descrición: muestra los datos correspondientes al usuario ingresado, en el caos de no ingresar ningún usuario se mostrará información relacionada a todos los usuarios pertenecientes al paradigmadocs
 ;dominio: paradigmadocs, string (opcional, nombre de usuario)
 ;recorrido: string

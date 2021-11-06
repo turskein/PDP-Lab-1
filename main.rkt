@@ -142,7 +142,7 @@
   (lambda (idDoc date searchText . styles)
     (define estilos (map (lambda (stl)
                          (string-append "#" "\u005C" (string stl))
-                         )styles))
+                         ) (filter (lambda (stl) (existsubstring? (string stl) "ibu")) styles)))
     (if(prdoc-theresesion? prdcs)
        (prdoc-closesion (prdoc-applystyles prdcs idDoc date searchText estilos))
        prdcs
@@ -183,36 +183,4 @@
     )
   )
 
-
-;-----Aplicación de testeos
-(define emptyGDocs (paradigmadocs "gDocs" (date 25 10 2021) EncryptFn DencryptFn))
-(define gDocs1
-(register (register (register emptyGDocs (date 25 10 2021) "user1" "pass1") (date 25 10 2021) "user2" "pass2") (date 25 10 2021) "user3" "pass3"))
-(define gDocsn ((login gDocs1 "user1" "pass1" create) (date 30 08 2021) "doc0" "contenido doc0"))
-(define gDocs2 ((login gDocsn "user1" "pass1" create) (date 30 08 2021) "doc1" "contenido doc1"))
-(define gDocs3 ((login gDocs2 "user2" "pass2" create) (date 30 08 2021) "doc2" "contenido doc2"))
-(define gDocs6 ((login gDocs3 "user1" "pass1" share) 0 (access "user1" #\r) (access "user2" #\w)(access "user3" #\c)))
-(define gDocs7 ((login gDocs6 "user3" "pass3" share) 0 (access "user1" #\c)))
-(define gDocs8 ((login gDocs7 "user1" "pass1" add) 0 (date 30 11 2021) " mas contenido en doc0"))
-(define gDocs9 ((login gDocs8 "user3" "pass3" add) 0 (date 30 11 2021) " mas contenido en doc3"))
-(define gDocs10 ((login gDocs9 "user1" "pass1" restoreVersion) 0 0))
-(define gDocs11 (login gDocs10 "user2" "pass2" revokeAllAccesses))
-(define gDocs12 ((login gDocs11 "user1" "pass1" delete) 1 (date 30 11 2021) 5))
-(define gDocs13 ((login gDocs12 "user3" "pass3" searchAndReplace) 0 (date 30 11 2021) "contenido" "content"))
-(define gDocs14 ((login gDocs13 "user2" "pass2" applyStyles) 0 (date 30 11 2021) "content" #\b #\i))
-(define gDocs15 ((login gDocs14 "user1" "pass1" comment) 0 (date 30 12 2021) "contenido" "Este es un comentario"))
-(define gDocs16 ((login gDocs15 "user1" "pass1" add) 0 (date 30 11 2021) " este es "))
-(define gDocs17 ((login gDocs16 "user1" "pass1" add) 0 (date 30 11 2021) "un nuevo "))
-(define gDocs18 ((login gDocs17 "user1" "pass1" add) 0 (date 30 11 2021) "text en doc0"))
-(define gDocs19 ((login gDocs18 "user1" "pass1" ctrlZ) 0 5))
-(define gDocs20 ((login gDocs19 "user1" "pass1" ctrlY) 0 2))
-(define gDocs21 ((login gDocs20 "user1" "pass1" add) 0 (date 30 11 2021) " este es "))
-
-;((login gDocs11 "user1" "pass1" search) "contenido")
-;(display (login gDocs14 "user1" "pass1" paradigmadocs->string))
-;(display "\n\n")
-;(display (paradigmadocs->string gDocs14))
-
-
-
-
+(provide (all-defined-out))

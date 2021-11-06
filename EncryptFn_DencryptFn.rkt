@@ -1,8 +1,8 @@
 #lang racket
+
 ;Descripción: Función que "encripta" una cadena de texto. Agrega una k entre cada letra de la cadena
 ;Dominio: cadena de texto
 ;Recorrido: cadena de texto
-
 (define (EncryptFn cadena)(
          define (encrypter result str pos)(
              if(= pos (string-length str))
