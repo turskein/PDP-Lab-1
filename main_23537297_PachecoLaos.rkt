@@ -1,11 +1,11 @@
 #lang racket
-(require "TDAfecha.rkt")
-(require "EncryptFn_DencryptFn.rkt")
-(require "TDAuser.rkt")
-(require "TDAversion.rkt")
-(require "TDAdocs.rkt")
-(require "TDAaccess.rkt")
-(require "TDAparadigmadocs.rkt")
+(require "TDAfecha_23537297_PachecoLaos.rkt")
+(require "EncryptFn_DencryptFn_23537297_PachecoLaos.rkt")
+(require "TDAuser_23537297_PachecoLaos.rkt")
+(require "TDAversion_23537297_PachecoLaos.rkt")
+(require "TDAdocs_23537297_PachecoLaos.rkt")
+(require "TDAaccess_23537297_PachecoLaos.rkt")
+(require "TDAparadigmadocs_23537297_PachecoLaos.rkt")
 
 ;descripción: registrar un nuevo nuevo usuario a paradigmadocs
 ;dominio: paradigmadocs, date, string, string

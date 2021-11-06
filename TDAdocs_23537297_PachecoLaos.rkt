@@ -1,10 +1,10 @@
 #lang racket
-(require "TDAuser.rkt")
-(require "TDAfecha.rkt")
-(require "TDAversion.rkt")
-(require "TDAaccess.rkt")
-(require "EncryptFn_DencryptFn.rkt")
-(require "TDAcomentario.rkt")
+(require "TDAuser_23537297_PachecoLaos.rkt")
+(require "TDAfecha_23537297_PachecoLaos.rkt")
+(require "TDAversion_23537297_PachecoLaos.rkt")
+(require "TDAaccess_23537297_PachecoLaos.rkt")
+(require "EncryptFn_DencryptFn_23537297_PachecoLaos.rkt")
+(require "TDAcomentario_23537297_PachecoLaos.rkt")
 ;REPRESENTACIÓN
 ;string(nombre), int(idDoc), string(nombre del propietario) , date, list(lista de versions), list(lista de access), list(lista versiones)
 

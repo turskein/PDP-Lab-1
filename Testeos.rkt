@@ -1,10 +1,10 @@
 #lang racket
 
-(require "main.rkt")
-(require "TDAfecha.rkt")
-(require "TDAparadigmadocs.rkt")
-(require "EncryptFn_DencryptFn.rkt")
-(require "TDAaccess.rkt")
+(require "main_23537297_PachecoLaos.rkt")
+(require "TDAfecha_23537297_PachecoLaos.rkt")
+(require "TDAparadigmadocs_23537297_PachecoLaos.rkt")
+(require "EncryptFn_DencryptFn_23537297_PachecoLaos.rkt")
+(require "TDAaccess_23537297_PachecoLaos.rkt")
 
 ;-----Aplicación de testeos presentes en el documento del laboratorio
 (define emptyGDocs (paradigmadocs "gDocs" (date 25 10 2021) EncryptFn DencryptFn))
